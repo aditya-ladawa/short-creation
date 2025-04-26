@@ -1,0 +1,6 @@
+langchain
+langgraph
+langchain-community
+langchain-google-vertexai
+langchain-google-genai
+langchain-tavily

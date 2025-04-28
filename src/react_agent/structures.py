@@ -4,7 +4,7 @@ from pydantic import BaseModel, Field
 ## script_generator
 # Sound class for defining sound-related elements in the script
 class Sound(BaseModel):
-    music: str = Field(..., description="Type of background music, e.g., 'calm', 'motivational', etc.")
+    music: str = Field(..., description="Type of background music suitable for the given scenario, e.g., 'calm', 'motivational', etc.")
     sound_effects: Optional[str] = Field(None, description="Any sound effects, e.g., 'clock ticking', 'murmurs', etc.")
     silence_duration: Optional[str] = Field(None, description="Duration of silence after key moments, e.g., '2 seconds', None if no silence.")
 
@@ -32,3 +32,16 @@ class SearchQuery(BaseModel):
     """Search the indexed documents for a query."""
 
     query: str
+
+
+class RetrievalQueries(BaseModel):
+    """
+    A list of search queries designed to retrieve relevant psychological concepts, 
+    studies, and applications for script generation.
+    """
+    queries: List[str] = Field(
+        ...,
+        min_items=1,
+        max_items=3,
+        description="List of distinct search queries to retrieve psychological concepts, studies, and real-world applications. Each query should be specific enough to target relevant information but broad enough to capture diverse perspectives."
+    )

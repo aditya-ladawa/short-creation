@@ -102,11 +102,6 @@ class Configuration(BaseConfiguration):
         },
     )
 
-    response_system_prompt: str = field(
-        default=prompts.RESPONSE_SYSTEM_PROMPT,
-        metadata={"description": "The system prompt used for generating responses."},
-    )
-
     response_model: Annotated[str, {"__template_metadata__": {"kind": "llm"}}] = field(
         default="deepseek/deepseek-chat",
         metadata={

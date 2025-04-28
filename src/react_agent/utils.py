@@ -132,3 +132,5 @@ def videoscript_to_text(script_obj: VideoScript) -> str:
     lines.append(f"⏱ Estimated Length: {length}")
 
     return "\n".join(lines)
+
+

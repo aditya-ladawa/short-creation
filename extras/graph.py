@@ -1,115 +1,149 @@
-"""Define a custom Reasoning and Action agent.
-
-Works with a chat model with tool calling support.
-"""
-
-from datetime import UTC, datetime
-from typing import Dict, List, Literal, cast
-
-from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, trim_messages
+from datetime import datetime, timezone
+from typing import Dict, Any, List
+from langchain_core.messages import AIMessage, HumanMessage
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langgraph.graph import StateGraph
 from langgraph.prebuilt import ToolNode
-
 from react_agent.configuration import Configuration
 from react_agent.state import InputState, State
-from react_agent.tools import TOOLS
-from react_agent.utils import load_chat_model
+from react_agent.utils import load_chat_model, videoscript_to_text, get_message_text
+from react_agent.structures import VideoScript, SearchQuery
+from react_agent.utils import format_docs
+import json
+from langgraph.types import interrupt, Command
+from langgraph.constants import START, END
+from langchain_deepseek import ChatDeepSeek
+from react_agent.retrieval import make_retriever
+from langchain_core.runnables import RunnableConfig
 
-# Define the function that calls the model
 
 
-async def call_model(state: State) -> Dict[str, List[AIMessage]]:
-    """Call the LLM powering our "agent".
+# Load the chat model
+model = ChatDeepSeek(model='deepseek-chat')
 
-    This function prepares the prompt, initializes the model, and processes the response.
 
-    Args:
-        state (State): The current state of the conversation.
-        config (RunnableConfig): Configuration for the model run.
 
-    Returns:
-        dict: A dictionary containing the model's response message.
+# Step 3: Generate the script using the retrieved documents
+async def script_generator(state: State) -> Dict[str, Any]:
+    script_gen_prompt = Configuration.script_gen_prompt
+
+    # Retrieve documents for context
+    retriever_results = await retrieve(state, configuration)
+    retrieved_docs = retriever_results["retrieved_docs"]
+    
+    # Format retrieved documents
+    formatted_docs = format_docs(retrieved_docs)
+
+    # Trim the messages for the script generation
+    trimmed_messages = trim_messages(
+        messages=state.messages,
+        token_counter=count_tokens_approximately,
+        strategy='last',
+        max_tokens=12128,
+        include_system=True,
+        allow_partial=False,
+        start_on='human'
+    )
+
+    # Combine the retrieved documents with the user messages
+    script_gen_template = ChatPromptTemplate(
+        messages=[
+            ('system', script_gen_prompt),
+            MessagesPlaceholder(variable_name="messages"),
+            ('system', f"Context from retrieved documents: {formatted_docs}"),
+        ]
+    )
+    script_gen_chain = script_gen_template | model.with_structured_output(VideoScript)
+
+    script_response = await script_gen_chain.ainvoke({"messages": trimmed_messages})
+    script_text = videoscript_to_text(script_response)
+
+    print('Generated script based on retrieved documents:')
+    print(script_text)
+
+    return {"scripts": [script_response], "messages": [AIMessage(content=script_text)]}
+
+# Step 4: Request feedback from the user
+async def request_feedback(state: State) -> Dict[str, Any]:
+    latest_script = state.messages[-1].content
+    user_feedback = interrupt(value=f'{latest_script}\n\nDo you want to revise the script? If not, answer "no", else mention the changes.')
+    return {'messages': [HumanMessage(content=user_feedback)]}
+
+# Step 5: Revise the script based on user feedback
+async def revise_script(state: State) -> Dict[str, Any]:
+    user_feedback = state.messages[-1].content
+    latest_script_obj = state.scripts[-1]
+    latest_script_text = videoscript_to_text(latest_script_obj)
+
+    trimmed_messages = trim_messages(
+        messages=state.messages,
+        token_counter=count_tokens_approximately,
+        strategy='last',
+        max_tokens=12128,
+        include_system=True,
+        allow_partial=False,
+        start_on='human'
+    )
+
+    system_prompt = f"""Revise the following script based on user's feedback.
+    
+    User feedback:
+    {user_feedback}
+
+    Latest script:
+    {latest_script_text}
+
+    Only return the revised script in the same format.
     """
-    configuration = Configuration.from_context()
 
-    # Initialize the model with tool binding. Change the model or add more tools here.
-    model = load_chat_model(configuration.model).bind_tools(TOOLS)
-
-    # Format the system prompt. Customize this to change the agent's behavior.
-    system_message = configuration.system_prompt.format(
-        system_time=datetime.now(tz=UTC).isoformat()
+    script_rev_template = ChatPromptTemplate(
+        messages=[
+            ('system', system_prompt),
+            MessagesPlaceholder(variable_name="messages"),
+        ]
     )
 
-    # Get the model's response
-    response = cast(
-        AIMessage,
-        await model.ainvoke(
-            [{"role": "system", "content": system_message}, *state.messages]
-        ),
-    )
+    script_rev_chain = script_rev_template | model.with_structured_output(VideoScript)
 
-    # Handle the case when it's the last step and the model still wants to use a tool
-    if state.is_last_step and response.tool_calls:
-        return {
-            "messages": [
-                AIMessage(
-                    id=response.id,
-                    content="Sorry, I could not find an answer to your question in the specified number of steps.",
-                )
-            ]
-        }
+    script_response = await script_rev_chain.ainvoke({"messages": trimmed_messages})
+    script_text = videoscript_to_text(script_response)
 
-    # Return the model's response as a list to be added to existing messages
-    return {"messages": [response]}
+    return {"scripts": [script_response], "messages": [AIMessage(content=script_text)]}
 
+# Route the feedback based on user's response
+async def route_feedback(state: State):
+    user_feedback = state.messages[-1].content
 
-# Define a new graph
+    if user_feedback.strip().lower() == 'no':
+        return END
+    else:
+        return 'revise_script'
 
+# Step 6: Define the nodes and the workflow
 builder = StateGraph(State, input=InputState, config_schema=Configuration)
 
-# Define the two nodes we will cycle between
-builder.add_node(call_model)
-builder.add_node("tools", ToolNode(TOOLS))
+# Add nodes to the graph
+builder.add_node('generate_query', generate_query)
+builder.add_node('retrieve', retrieve)
+builder.add_node('script_generator', script_generator)
+builder.add_node('request_feedback', request_feedback)
+builder.add_node('revise_script', revise_script)
 
-# Set the entrypoint as `call_model`
-# This means that this node is the first one called
-builder.add_edge("__start__", "call_model")
+# Set up the workflow structure
+builder.set_entry_point("generate_query")
+builder.add_edge("generate_query", "retrieve")
+builder.add_edge("retrieve", "script_generator")
+builder.add_edge("script_generator", "request_feedback")
+builder.add_edge("revise_script", "request_feedback")
 
-
-def route_model_output(state: State) -> Literal["__end__", "tools"]:
-    """Determine the next node based on the model's output.
-
-    This function checks if the model's last message contains tool calls.
-
-    Args:
-        state (State): The current state of the conversation.
-
-    Returns:
-        str: The name of the next node to call ("__end__" or "tools").
-    """
-    last_message = state.messages[-1]
-    if not isinstance(last_message, AIMessage):
-        raise ValueError(
-            f"Expected AIMessage in output edges, but got {type(last_message).__name__}"
-        )
-    # If there is no tool call, then we finish
-    if not last_message.tool_calls:
-        return "__end__"
-    # Otherwise we execute the requested actions
-    return "tools"
-
-
-# Add a conditional edge to determine the next step after `call_model`
+# Conditional loop for feedback
 builder.add_conditional_edges(
-    "call_model",
-    # After call_model finishes running, the next node(s) are scheduled
-    # based on the output from route_model_output
-    route_model_output,
+    'request_feedback',
+    route_feedback,  # This function determines continue or end
+    path_map={
+        END: END,  # If "no", end the workflow
+        'revise_script': 'revise_script'  # If feedback is provided, revise the script
+    }
 )
 
-# Add a normal edge from `tools` to `call_model`
-# This creates a cycle: after using tools, we always return to the model
-builder.add_edge("tools", "call_model")
-
-# Compile the builder into an executable graph
-graph = builder.compile(name="ReAct Agent")
+graph = builder.compile()

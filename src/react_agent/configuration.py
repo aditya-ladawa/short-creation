@@ -1,51 +1,129 @@
+# configuration.py
+
 """Define the configurable parameters for the agent."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field, fields
-from typing import Annotated
+from typing import Annotated, Any, Literal, Optional, Type, TypeVar
 
-from langchain_core.runnables import ensure_config
+from langchain_core.runnables import RunnableConfig, ensure_config
 from langgraph.config import get_config
 
 from react_agent import prompts
 
 
-@dataclass(kw_only=True)
-class Configuration:
-    """The configuration for the agent."""
+# Generic Base Configuration
+@dataclass
+class BaseConfiguration:
+    """Base configuration class for indexing, retrieval, and agent operations."""
 
-    script_gen_prompt: str = field(
-        default=prompts.SCRIPT_GEN_PROMPT,
+    user_id: str = field(metadata={"description": "Unique identifier for the user."})
+
+    embedding_model: Annotated[
+        str,
+        {"__template_metadata__": {"kind": "embeddings"}},
+    ] = field(
+        default="google_vertexai/text-embedding-large-exp-03-07",
         metadata={
-            "description": "The system prompt to use for the agent's interactions. "
-            "This prompt sets the context and behavior for the agent."
+            "description": "Name of the embedding model to use. Must be a valid embedding model name."
         },
     )
 
-    model: Annotated[str, {"__template_metadata__": {"kind": "llm"}}] = field(
-        default="google_vertexai/gemini-2.0-flash",
+    retriever_provider: Annotated[
+        Literal["weaviate-local"],
+        {"__template_metadata__": {"kind": "retriever"}},
+    ] = field(
+        default="weaviate-local",
         metadata={
-            "description": "The name of the language model to use for the agent's main interactions. "
-            "Should be in the form: provider/model-name."
+            "description": "The vector store provider to use for retrieval. Currently set to 'weaviate-local'."
         },
     )
 
-    # max_search_results: int = field(
-    #     default=10,
-    #     metadata={
-    #         "description": "The maximum number of search results to return for each search query."
-    #     },
-    # )
+    retriever_search_kwargs: dict[str, Any] = field(
+        default_factory=lambda: {"k": 10, "alpha": 0.5}, # Increased k for reranking
+        metadata={
+            "description": "Keyword arguments for the base retriever search (e.g., k for number of results, alpha for hybrid search weighting)."
+        },
+    )
+
+    reranker_model: Annotated[
+        Optional[str],
+        {"__template_metadata__": {"kind": "reranker"}},
+    ] = field(
+        # Updated default to BGE reranker
+        default="BAAI/bge-reranker-v2-m3",
+        metadata={
+            "description": "The Hugging Face cross-encoder model name to use for reranking (e.g., 'BAAI/bge-reranker-v2-m3'). Set to None to disable reranking."
+        },
+    )
+    reranker_top_n: int = field(
+        default=3, # Keep top 3 after reranking
+        metadata={"description": "Number of documents to return after reranking."}
+    )
 
     @classmethod
-    def from_context(cls) -> Configuration:
-        """Create a Configuration instance from a RunnableConfig object."""
-        try:
-            config = get_config()
-        except RuntimeError:
-            config = None
+    def from_runnable_config(
+        cls: Type[T], config: Optional[RunnableConfig] = None
+    ) -> T:
+        """Create a BaseConfiguration instance from a RunnableConfig object."""
+        if config is None:
+            try:
+                config = get_config()
+            except RuntimeError:
+                config = None
         config = ensure_config(config)
         configurable = config.get("configurable") or {}
         _fields = {f.name for f in fields(cls) if f.init}
         return cls(**{k: v for k, v in configurable.items() if k in _fields})
+
+
+T = TypeVar("T", bound=BaseConfiguration)
+
+
+# Specific Agent Configuration
+@dataclass
+class Configuration(BaseConfiguration):
+    """The full configuration for the agent."""
+
+    # ... (rest of the agent-specific config remains the same) ...
+
+    script_gen_prompt: str = field(
+        default=prompts.SCRIPT_GEN_PROMPT,
+        metadata={
+            "description": "The system prompt for script generation by the agent."
+        },
+    )
+
+    model: Annotated[str, {"__template_metadata__": {"kind": "llm"}}] = field(
+        default="deepseek/deepseek-chat",
+        metadata={
+            "description": "The language model used for main interactions. Should be in the form: provider/model-name."
+        },
+    )
+
+    response_system_prompt: str = field(
+        default=prompts.RESPONSE_SYSTEM_PROMPT,
+        metadata={"description": "The system prompt used for generating responses."},
+    )
+
+    response_model: Annotated[str, {"__template_metadata__": {"kind": "llm"}}] = field(
+        default="deepseek/deepseek-chat",
+        metadata={
+            "description": "The language model used for generating responses. Should be in the form: provider/model-name."
+        },
+    )
+
+    query_system_prompt: str = field(
+        default=prompts.QUERY_SYSTEM_PROMPT,
+        metadata={
+            "description": "The system prompt used for processing and refining queries."
+        },
+    )
+
+    query_model: Annotated[str, {"__template_metadata__": {"kind": "llm"}}] = field(
+        default="deepseek/deepseek-chat",
+        metadata={
+            "description": "The language model used for processing and refining queries. Should be in the form: provider/model-name."
+        },
+    )

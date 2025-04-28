@@ -1,7 +1,8 @@
 {
   "dependencies": ["."],
   "graphs": {
-    "agent": "./src/react_agent/graph.py:graph"
+    "short-graph": "./src/react_agent/graph.py:graph",
+    "index-graph": "./src/react_agent/index_graph.py:index_graph"
   },
   "env": ".env"
 }

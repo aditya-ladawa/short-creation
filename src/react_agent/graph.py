@@ -8,7 +8,7 @@ from langgraph.prebuilt import ToolNode
 from react_agent.configuration import Configuration
 from react_agent.state import InputState, State
 from react_agent.utils import load_chat_model, videoscript_to_text, get_message_text
-from react_agent.structures import VideoScript, RetrievalQueries
+from react_agent.structures import *
 import json
 from langgraph.types import interrupt, Command
 from langgraph.constants import START, END
@@ -18,98 +18,15 @@ from langchain_core.runnables import RunnableConfig
 
 
 # Load the chat model
-model = ChatDeepSeek(model='deepseek-chat')
+model = ChatDeepSeek(model='deepseek-chat', temperature=0.0)
+# model = load_chat_model('google_vertexai/gemini-2.0-flash')
 
-# Step 1: Generate the query for document retrieval
-async def generate_queries(state: State) -> Dict[str, Any]:
-    configuration = Configuration
-    
-    # Extract feedback (last human message)
-    user_feedback = next(
-        (msg.content for msg in reversed(state.messages) 
-            if isinstance(msg, HumanMessage)),  # More explicit type check
-        "No feedback provided"
-    )
-    
-    # Get previous queries if they exist
-    previous_queries = (
-        "\n".join(f"- {q}" for q in state.queries.queries) 
-        if hasattr(state, 'queries') and hasattr(state.queries, 'queries') and state.queries.queries 
-        else "No previous queries"
-    )
-
-    prompt = ChatPromptTemplate.from_messages([
-        ("system", configuration.query_system_prompt.format(
-            feedback=user_feedback,
-            previous_queries=previous_queries
-        )),
-        MessagesPlaceholder(variable_name="messages")
-    ])
-
-    query_model = load_chat_model(configuration.query_model)
-    
-    # Ensure trimmed_messages is not empty
-    trimmed_messages = trim_messages(
-        messages=state.messages,
-        token_counter=count_tokens_approximately,
-        strategy='last',
-        max_tokens=12128,
-        include_system=True,
-        allow_partial=False,
-        start_on='human'
-    )
-    
-    if not trimmed_messages:
-        raise ValueError("No valid messages found after trimming")
-
-    # Explicit await chain
-    message_value = await prompt.ainvoke({
-        "messages": trimmed_messages
-    })
-    print(message_value)
-    query_response = await query_model.with_structured_output(
-        RetrievalQueries
-    ).ainvoke(message_value)
-    
-    return {"queries": query_response}
-
-# Step 2: Retrieve documents based on the query
-async def retrieve(state: State, config: RunnableConfig) -> Dict[str, Any]:
-    print(f"state.queries: {state.queries}\n")
-    retriever = initialize_hybrid_retriever()
-    final_response = []
-
-
-
-    for query in state.queries.queries:
-        # print(f"current query: {query}\n")
-        results = retriever.invoke(query)
-        query_header = f"\n\n=== Results for query: '{query}' ===\n"
-        final_response.append(query_header)
-        
-        for doc in results:
-            doc_entry = [
-                f"Source: {doc.metadata.get('source', 'Unknown')}",
-                f"Context: {doc.metadata.get('context', 'N/A')}",
-                f"Tags: {', '.join(doc.metadata.get('tags', []))}",
-                f"Confidence: {doc.metadata.get('combined_score', 0):.2f}",
-                f"Chunk {doc.metadata.get('chunk_index', 0)}/{doc.metadata.get('total_chunks', 0)}",
-                f"Content:\n{doc.page_content}\n",
-                "-" * 80
-            ]
-            final_response.append("\n".join(doc_entry))
-
-    return {"final_response": "\n".join(final_response)}
 
 
 # Step 3: Generate the script using the retrieved documents
 async def script_generator(state: State) -> Dict[str, Any]:
     script_gen_prompt = Configuration.script_gen_prompt
 
-    # Retrieve documents for context
-    retriever_results = state.final_response
-    
-    # Trim the messages for the script generation
     trimmed_messages = trim_messages(
         messages=state.messages,
         token_counter=count_tokens_approximately,
@@ -120,22 +37,15 @@ async def script_generator(state: State) -> Dict[str, Any]:
         start_on='human'
     )
 
-    # Combine the retrieved documents with the user messages
-    script_gen_template = ChatPromptTemplate(
-        messages=[
-            ('system', script_gen_prompt),
-            MessagesPlaceholder(variable_name="messages"),
-            ('system', f"Context from retrieved documents: {retriever_results}"),
-        ]
-    )
+    
+    script_gen_template = ChatPromptTemplate.from_messages([
+        ("system", script_gen_prompt),
+        MessagesPlaceholder(variable_name="messages"),
+    ])
+    
     script_gen_chain = script_gen_template | model.with_structured_output(VideoScript)
-
     script_response = await script_gen_chain.ainvoke({"messages": trimmed_messages})
     script_text = videoscript_to_text(script_response)
-
-    print('Generated script based on retrieved documents:')
-    print(script_text)
-
     return {"scripts": [script_response], "messages": [AIMessage(content=script_text)]}
 
 # Step 4: Request feedback from the user

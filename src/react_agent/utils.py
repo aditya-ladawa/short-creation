@@ -80,57 +80,93 @@ def format_docs(docs: Optional[list[Document]]) -> str:
 
 
 
+# from typing import List
+# from .structures import VideoScript, VideoSection, Visual, SectionSound, GlobalSound
+
+# def videoscript_to_text(script_obj: VideoScript) -> str:
+#     """
+#     Converts a VideoScript Pydantic object into a formatted text string.
+#     Now supports unified background music and section-specific sound design.
+    
+#     Args:
+#         script_obj: An instance of the VideoScript Pydantic model with:
+#                    - Unified background_music (GlobalSound)
+#                    - Section-specific sound effects (SectionSound)
+                   
+#     Returns:
+#         A formatted string representing the video script with audio annotations.
+#     """
+#     lines = []
+    
+#     # Header with title and global music
+#     lines.append(f"# 🎬 {script_obj.title}\n")
+#     lines.append(f"🎵 Background Music: {script_obj.background_music.music}\n")
+#     lines.append(f"⏱ Length: {script_obj.length}\n")
+    
+#     # Process each section
+#     for section in script_obj.sections:
+#         lines.append(f"## {section.section}\n{section.text}")
+        
+#         # Visual elements
+#         visual = section.visual
+#         lines.append(f"🎥 Scene: {visual.scene}")
+#         lines.append(f"✨ Transition: {visual.transition}")
+#         lines.append(f"📷 Camera: {visual.camera_angle}")
+        
+#         # Sound design elements
+#         sound = visual.sound
+#         if sound.sound_effects:
+#             timing = f" ({sound.sound_effect_timing})" if sound.sound_effect_timing else ""
+#             lines.append(f"🔊 SFX: {sound.sound_effects}{timing}")
+#         if sound.silence_duration:
+#             lines.append(f"🤫 Silence: {sound.silence_duration}")
+        
+#         lines.append("")  # Section separator
+    
+#     return "\n".join(lines)
+
+
 from typing import List
-# Make sure to import VideoScript from wherever you defined your structures
-from .structures import VideoScript, VideoSection, Visual, Sound # Assuming structures.py
+from .structures import VideoScript, VideoSection, Visual, SectionSound, GlobalSound
 
 def videoscript_to_text(script_obj: VideoScript) -> str:
     """
-    Converts a VideoScript Pydantic object into a formatted text string.
-
+    Converts a VideoScript TypedDict object into a formatted text string.
+    Now supports unified background music and section-specific sound design.
+    
     Args:
-        script_obj: An instance of the VideoScript Pydantic model.
-
+        script_obj: An instance of the VideoScript TypedDict with:
+                   - Unified background_music (GlobalSound)
+                   - Section-specific sound effects (SectionSound)
+                   
     Returns:
-        A formatted string representing the video script.
+        A formatted string representing the video script with audio annotations.
     """
     lines = []
-
-    # Access attributes directly from the Pydantic object
-    title = script_obj.title
-    length = script_obj.length
-
-    lines.append(f"# 🎬 {title}\n")
-
-    # Iterate through the list of VideoSection Pydantic objects
-    for section in script_obj.sections:
-        # Access attributes from the nested Pydantic objects
-        section_title = section.section
-        text = section.text
-        visual: Visual = section.visual # Type hint for clarity
-        sound: Sound = visual.sound     # Type hint for clarity
-
-        scene = visual.scene
-        transition = visual.transition
-        music = sound.music
-        sound_effects = sound.sound_effects
-
-        lines.append(f"## {section_title}\n{text}")
-
-        # Pydantic handles optional fields gracefully; checking for truthiness works.
-        if scene:
-            lines.append(f"🎥 Scene: {scene}")
-        if transition:
-            lines.append(f"✨ Transition: {transition}")
-        if music:
-            lines.append(f"🎶 Music: {music}")
-        if sound_effects:
-            lines.append(f"🔊 Sound Effects: {sound_effects}")
-
-        lines.append("")  # blank line between sections
-
-    lines.append(f"⏱ Estimated Length: {length}")
-
+    
+    # Header with title and global music
+    lines.append(f"# 🎬 {script_obj['title']}\n")
+    lines.append(f"🎵 Background Music: {script_obj['background_music']['music']}\n")
+    lines.append(f"⏱ Length: {script_obj['length']}\n")
+    
+    # Process each section
+    for section in script_obj['sections']:
+        lines.append(f"## {section['section']}\n{section['text']}")
+        
+        # Visual elements
+        visual = section['visual']
+        lines.append(f"🎥 Scene: {visual['scene']}")
+        lines.append(f"✨ Transition: {visual['transition']}")
+        lines.append(f"📷 Camera: {visual['camera_angle']}")
+        
+        # Sound design elements
+        sound = visual['sound']
+        if sound.get('sound_effects'):
+            timing = f" ({sound['sound_effect_timing']})" if sound.get('sound_effect_timing') else ""
+            lines.append(f"🔊 SFX: {sound['sound_effects']}{timing}")
+        if sound.get('silence_duration'):
+            lines.append(f"🤫 Silence: {sound['silence_duration']}")
+        
+        lines.append("")  # Section separator
+    
     return "\n".join(lines)
-
-

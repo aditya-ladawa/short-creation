@@ -1,47 +1,100 @@
-from typing import List, Optional, Dict
-from pydantic import BaseModel, Field
+# from typing import List, Optional, Dict
+# from pydantic import BaseModel, Field
 
-## script_generator
-# Sound class for defining sound-related elements in the script
-class Sound(BaseModel):
-    music: str = Field(..., description="Type of background music suitable for the given scenario, e.g., 'calm', 'motivational', etc.")
-    sound_effects: Optional[str] = Field(None, description="Any sound effects, e.g., 'clock ticking', 'murmurs', etc.")
-    silence_duration: Optional[str] = Field(None, description="Duration of silence after key moments, e.g., '2 seconds', None if no silence.")
+# class GlobalSound(BaseModel):
+#     """Background music that plays throughout the entire video"""
+#     music: str = Field(
+#         ...,
+#         description="Type of continuous background music suitable for the entire video (e.g., 'calm ambient', 'subtle motivational', 'light electronic'). Should match the overall tone of the psychological concept."
+#     )
 
-# Visual class for defining visual elements in the script
-class Visual(BaseModel):
-    scene: str = Field(..., description="Description of the scene or action happening.")
-    camera_angle: str = Field(..., description="Type of camera angle used in the scene (e.g., 'close-up', 'medium shot').")
-    transition: str = Field(..., description="Transition type between scenes (e.g., 'fade-in', 'cut to', 'zoom-in').")
-    sound: Sound = Field(..., description="Sound properties associated with the visual (music, sound effects, silence).")
+# class SectionSound(BaseModel):
+#     """Sound elements specific to individual sections"""
+#     sound_effects: Optional[str] = Field(
+#         None,
+#         description="Specific sound effects timed with visual elements (e.g., 'clock ticking during tense moment', 'crowd murmur for social scene'). Only include if dramatically relevant."
+#     )
+#     silence_duration: Optional[str] = Field(
+#         None,
+#         description="Strategic pauses after key moments (e.g., '2 seconds after shocking statistic', '1 beat before reveal'). Format as 'X seconds' or None."
+#     )
+#     sound_effect_timing: Optional[str] = Field(
+#         None,
+#         description="When to play the sound effect relative to the action (e.g., 'as the person realizes', 'when text appears', 'during transition')"
+#     )
 
-# Video section class for defining each section in the script
-class VideoSection(BaseModel):
-    section: str = Field(..., description="Section name, e.g., 'Hook', 'Real-World Example', 'Actionable Tip'.")
-    text: str = Field(..., description="Text to be said during this section of the video.")
-    visual: Visual = Field(..., description="Visual and sound details associated with this section.")
+# class Visual(BaseModel):
+#     scene: str = Field(..., description="Detailed description of the scene/action")
+#     camera_angle: str = Field(..., description="Shot type (e.g., 'extreme close-up', 'over-the-shoulder')")
+#     transition: str = Field(..., description="How this scene connects to next (e.g., 'quick cut', 'slow dissolve')")
+#     sound: SectionSound = Field(..., description="Section-specific sound enhancements")
 
-# Full video script structure
-class VideoScript(BaseModel):
-    title: str = Field(..., description="Title of the video, e.g., 'The Power of Silence in Communication'.")
-    length: str = Field(..., description="Video length in seconds, e.g., '60-90 seconds'.")
-    sections: List[VideoSection] = Field(..., description="List of sections in the script, each containing text and visual information.")
+# class VideoSection(BaseModel):
+#     section: str = Field(..., description="Script section name")
+#     text: str = Field(..., description="Narration/dialogue text")
+#     visual: Visual = Field(..., description="Visual storytelling elements")
+
+# class VideoScript(BaseModel):
+#     title: str = Field(..., description="Attention-grabbing title")
+#     length: str = Field(..., description="Duration (90-120 seconds)")
+#     background_music: GlobalSound = Field(..., description="Continuous soundtrack")
+#     sections: List[VideoSection] = Field(..., description="Script sections in order")
+
+# class SearchQuery(BaseModel):
+#     """Search the indexed documents for a query."""
+
+#     query: str
 
 
-class SearchQuery(BaseModel):
+# class RetrievalQueries(BaseModel):
+#     """
+#     A list of search queries designed to retrieve relevant psychological concepts, 
+#     studies, and applications for script generation.
+#     """
+#     queries: List[str] = Field(
+#         ...,
+#         min_items=1,
+#         max_items=3,
+#         description="List of distinct search queries to retrieve psychological concepts, studies, and real-world applications. Each query should be specific enough to target relevant information but broad enough to capture diverse perspectives."
+#     )
+
+from typing_extensions import TypedDict, Optional
+from typing import List
+
+class GlobalSound(TypedDict):
+    """Background music that plays throughout the entire video"""
+    music: str
+
+class SectionSound(TypedDict):
+    """Sound elements specific to individual sections"""
+    sound_effects: Optional[str]
+    silence_duration: Optional[str]
+    sound_effect_timing: Optional[str]
+
+class Visual(TypedDict):
+    scene: str
+    camera_angle: str
+    transition: str
+    sound: SectionSound
+
+class VideoSection(TypedDict):
+    section: str
+    text: str
+    visual: Visual
+
+class VideoScript(TypedDict):
+    title: str
+    length: str
+    background_music: GlobalSound
+    sections: List[VideoSection]
+
+class SearchQuery(TypedDict):
     """Search the indexed documents for a query."""
-
     query: str
 
-
-class RetrievalQueries(BaseModel):
+class RetrievalQueries(TypedDict):
     """
     A list of search queries designed to retrieve relevant psychological concepts, 
     studies, and applications for script generation.
     """
-    queries: List[str] = Field(
-        ...,
-        min_items=1,
-        max_items=3,
-        description="List of distinct search queries to retrieve psychological concepts, studies, and real-world applications. Each query should be specific enough to target relevant information but broad enough to capture diverse perspectives."
-    )
+    queries: List[str]

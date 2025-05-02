@@ -80,62 +80,16 @@ def format_docs(docs: Optional[list[Document]]) -> str:
 
 
 
-# from typing import List
-# from .structures import VideoScript, VideoSection, Visual, SectionSound, GlobalSound
-
-# def videoscript_to_text(script_obj: VideoScript) -> str:
-#     """
-#     Converts a VideoScript Pydantic object into a formatted text string.
-#     Now supports unified background music and section-specific sound design.
-    
-#     Args:
-#         script_obj: An instance of the VideoScript Pydantic model with:
-#                    - Unified background_music (GlobalSound)
-#                    - Section-specific sound effects (SectionSound)
-                   
-#     Returns:
-#         A formatted string representing the video script with audio annotations.
-#     """
-#     lines = []
-    
-#     # Header with title and global music
-#     lines.append(f"# 🎬 {script_obj.title}\n")
-#     lines.append(f"🎵 Background Music: {script_obj.background_music.music}\n")
-#     lines.append(f"⏱ Length: {script_obj.length}\n")
-    
-#     # Process each section
-#     for section in script_obj.sections:
-#         lines.append(f"## {section.section}\n{section.text}")
-        
-#         # Visual elements
-#         visual = section.visual
-#         lines.append(f"🎥 Scene: {visual.scene}")
-#         lines.append(f"✨ Transition: {visual.transition}")
-#         lines.append(f"📷 Camera: {visual.camera_angle}")
-        
-#         # Sound design elements
-#         sound = visual.sound
-#         if sound.sound_effects:
-#             timing = f" ({sound.sound_effect_timing})" if sound.sound_effect_timing else ""
-#             lines.append(f"🔊 SFX: {sound.sound_effects}{timing}")
-#         if sound.silence_duration:
-#             lines.append(f"🤫 Silence: {sound.silence_duration}")
-        
-#         lines.append("")  # Section separator
-    
-#     return "\n".join(lines)
-
-
 from typing import List
 from .structures import VideoScript, VideoSection, Visual, SectionSound, GlobalSound
 
 def videoscript_to_text(script_obj: VideoScript) -> str:
     """
-    Converts a VideoScript TypedDict object into a formatted text string.
+    Converts a VideoScript Pydantic object into a formatted text string.
     Now supports unified background music and section-specific sound design.
     
     Args:
-        script_obj: An instance of the VideoScript TypedDict with:
+        script_obj: An instance of the VideoScript Pydantic model with:
                    - Unified background_music (GlobalSound)
                    - Section-specific sound effects (SectionSound)
                    
@@ -145,28 +99,74 @@ def videoscript_to_text(script_obj: VideoScript) -> str:
     lines = []
     
     # Header with title and global music
-    lines.append(f"# 🎬 {script_obj['title']}\n")
-    lines.append(f"🎵 Background Music: {script_obj['background_music']['music']}\n")
-    lines.append(f"⏱ Length: {script_obj['length']}\n")
+    lines.append(f"# 🎬 {script_obj.title}\n")
+    lines.append(f"🎵 Background Music: {script_obj.background_music.music}\n")
+    lines.append(f"⏱ Length: {script_obj.length}\n")
     
     # Process each section
-    for section in script_obj['sections']:
-        lines.append(f"## {section['section']}\n{section['text']}")
+    for section in script_obj.sections:
+        lines.append(f"## {section.section}\n{section.text}")
         
         # Visual elements
-        visual = section['visual']
-        lines.append(f"🎥 Scene: {visual['scene']}")
-        lines.append(f"✨ Transition: {visual['transition']}")
-        lines.append(f"📷 Camera: {visual['camera_angle']}")
+        visual = section.visual
+        lines.append(f"🎥 Scene: {visual.scene}")
+        lines.append(f"✨ Transition: {visual.transition}")
+        lines.append(f"📷 Camera: {visual.camera_angle}")
         
         # Sound design elements
-        sound = visual['sound']
-        if sound.get('sound_effects'):
-            timing = f" ({sound['sound_effect_timing']})" if sound.get('sound_effect_timing') else ""
-            lines.append(f"🔊 SFX: {sound['sound_effects']}{timing}")
-        if sound.get('silence_duration'):
-            lines.append(f"🤫 Silence: {sound['silence_duration']}")
+        sound = visual.sound
+        if sound.sound_effects:
+            timing = f" ({sound.sound_effect_timing})" if sound.sound_effect_timing else ""
+            lines.append(f"🔊 SFX: {sound.sound_effects}{timing}")
+        if sound.silence_duration:
+            lines.append(f"🤫 Silence: {sound.silence_duration}")
         
         lines.append("")  # Section separator
     
     return "\n".join(lines)
+
+
+# from typing import List
+# from .structures import VideoScript, VideoSection, Visual, SectionSound, GlobalSound
+
+# def videoscript_to_text(script_obj: VideoScript) -> str:
+#     """
+#     Converts a VideoScript TypedDict object into a formatted text string.
+#     Now supports unified background music and section-specific sound design.
+    
+#     Args:
+#         script_obj: An instance of the VideoScript TypedDict with:
+#                    - Unified background_music (GlobalSound)
+#                    - Section-specific sound effects (SectionSound)
+                   
+#     Returns:
+#         A formatted string representing the video script with audio annotations.
+#     """
+#     lines = []
+    
+#     # Header with title and global music
+#     lines.append(f"# 🎬 {script_obj['title']}\n")
+#     lines.append(f"🎵 Background Music: {script_obj['background_music']['music']}\n")
+#     lines.append(f"⏱ Length: {script_obj['length']}\n")
+    
+#     # Process each section
+#     for section in script_obj['sections']:
+#         lines.append(f"## {section['section']}\n{section['text']}")
+        
+#         # Visual elements
+#         visual = section['visual']
+#         lines.append(f"🎥 Scene: {visual['scene']}")
+#         lines.append(f"✨ Transition: {visual['transition']}")
+#         lines.append(f"📷 Camera: {visual['camera_angle']}")
+        
+#         # Sound design elements
+#         sound = visual['sound']
+#         if sound.get('sound_effects'):
+#             timing = f" ({sound['sound_effect_timing']})" if sound.get('sound_effect_timing') else ""
+#             lines.append(f"🔊 SFX: {sound['sound_effects']}{timing}")
+#         if sound.get('silence_duration'):
+#             lines.append(f"🤫 Silence: {sound['silence_duration']}")
+        
+#         lines.append("")  # Section separator
+    
+#     return "\n".join(lines)

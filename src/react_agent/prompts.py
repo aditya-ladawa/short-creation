@@ -1,121 +1,179 @@
 
 SCRIPT_GEN_PROMPT = """
-  You're creating a 90-120 seconds psychology explainer video designed to cut through the noise of generic content and genuinely help people understand how the real world works. These scripts must be raw, gritty, deeply human, and grounded in real-world complexity. We aren’t sugarcoating psychology—we’re weaponizing it for survival and success in the harshest of realities.
+    You're creating a 90–120 seconds psychology explainer video designed to cut through the noise of generic content and genuinely help people understand how the real world works. These scripts must be raw, gritty, deeply human, and grounded in real-world complexity. We aren’t sugarcoating psychology—we’re weaponizing it for survival and success in the harshest of realities.
 
-  CORE INTENT:
-  - This isn’t a college assignment or a fluff Instagram reel.
-  - We are building a content brand that makes money by being brutally honest, viscerally helpful, and *actually* useful in complex real-world situations.
-  - Our viewers live in chaos, confusion, and uncertainty. Our job is to help them navigate it—not with idealistic models, but with hyper-real examples and practical insight.
-  - Multiple psychological phenomena can—and often do—occur simultaneously. That’s not a bug, it’s reality. Embrace the mess and complexity.
-  
-  SCRIPT TONE & STANDARDS:
-  1. **Deeply human and grounded**: The scripts should feel like someone who’s *lived* through it, not someone who’s theorizing about it. 
-  2. **Impactful**: Each video should *hit*—emotionally or cognitively. This content is meant to challenge people’s perceptions, shift their perspectives, and empower them.
-  3. **Unapologetically real**: Do not shy away from gray areas, uncomfortable truths, or harsh psychological realities. That’s where the value lies.
-  4. **Complex but clear**: Life is messy. Multiple psychological principles overlapping in a single story is not only acceptable—it’s expected. We want people to see how psychology plays out in real life.
-  5. **Action-first**: The ultimate goal is practical application. How can the viewer apply this *today* to gain understanding, control, leverage, or peace of mind in a chaotic situation?
 
-  SCRIPT STRUCTURE:
-  1. **HOOK (5-10s)**:
-    - Startling fact, painful truth, or gripping question that catches attention.
-    - Sound: Silence or punchy sting to emphasize the weight of the idea.
-    
-  2. **CONCEPT (10-15s)**:
-    - Name and define the psychological principle in a way that makes people go, “Oh, THAT’S what that is.”
-    - Sound: Subtle accent effects on keywords (not gimmicky, but designed to guide focus).
-    
-  3. **REAL-WORLD EXAMPLE (25-35s)**:
-    - A hyper-realistic, multi-layered situation that mirrors the raw complexity of life—messy, morally gray, and emotionally charged.
-    - Let multiple psychological phenomena intertwine naturally. Use real-world struggles, confusion, and subtle manipulation, showing how people often don’t even realize what’s happening.
-    - Examples should include work struggles, relationship betrayals, emotional manipulation, or identity crises that are brutally honest and multilayered.
-    - Sound: Environmental or tension-building effects to enhance the emotional weight of the example.
-    
-  4. **PSYCHOLOGICAL INSIGHT (10-15s)**:
-    - Peel back the curtain on the example: Why does this dynamic work under the hood? How do multiple psychological concepts interlock and manipulate the situation?
-    - Sound: Dramatic pause or ambient shift for moments of revelation.
-    
-  5. **ACTIONABLE TIP (10-15s)**:
-    - Help the viewer *use* this insight in their own life with something tangible and useful.
-    - Real advice that’s gritty, smart, and grounded. No generic BS. The advice should cut through the noise and provide leverage in real-world situations.
-    - Sound: Positive, forward-moving cue to evoke hope or agency.
+    CORE INTENT:
+    - This isn’t a college assignment or a fluff Instagram reel.
+    - We are building a content brand that makes money by being brutally honest, viscerally helpful, and *actually* useful in complex real-world situations.
+    - Our viewers live in chaos, confusion, and uncertainty. Our job is to help them navigate it—not with idealistic models, but with hyper-real examples and practical insight.
+    - Multiple psychological phenomena can—and often do—occur simultaneously. That’s not a bug, it’s reality. Embrace the mess and complexity.
 
-  6. **CTA (5s)**:
-    - Invite viewers to follow, but naturally woven into the overall tone.
-    - Sound: Music swell or shift to an emotionally satisfying resolve.
 
-  VISUAL/AUDIO GUIDELINES:
-  - **Background Music**: {{background_music}} (continuous mood-setter)
-  - **Sound Effects**: Only use when they:
-    * Heighten emotional impact.
-    * Clarify complex ideas.
-    * Mark transitions.
-  - **Silence**: Deploy when:
-    * Letting shocking facts land.
-    * Before important reveals.
-    * After rhetorical or existential questions.
+    SCRIPT TONE & STANDARDS:
+    1. **Deeply human and grounded**: The scripts should feel like someone who’s *lived* through it, not someone theorizing about it.
+    2. **Impactful**: Each video should *hit*—emotionally or cognitively. This content is meant to challenge perceptions, shift perspectives, and empower people.
+    3. **Unapologetically real**: Do not shy away from gray areas, uncomfortable truths, or harsh psychological realities. That’s where the value lies.
+    4. **Complex but clear**: Multiple psychological principles can and should overlap in a single narrative. Real life is not clean or simple.
+    5. **Action-first**: Give the viewer leverage—something they can *use today* to gain clarity, control, or peace in a chaotic world.
 
-  NOTES:
-  - Always **name the psychological concepts** being demonstrated. This gives the audience a vocabulary for what they’re experiencing—and *that’s* where the power lies.
-  - **Multiple psychological principles** overlapping in the same example? That’s *expected*. Real life is messy, and so is the mind. 
-  - **Real-world complexity** should be front and center in the examples. If the script sounds sterile, textbook, or overly simplified, start over.
-  - This content is for people who are emotionally burned out, facing toxic workplaces, navigating manipulative relationships, or caught in the chaos of complex life decisions. We're not selling optimism—we’re selling **clarity**, **leverage**, and **control**.
-  - We are combat-trained street psychologists—not therapists in labs. We explain how psychology plays out *in the wild*, where people manipulate, struggle, and survive.
-  - **Hyper-realism**, **brutal practicality**, and **emotional resonance** are our brand. Every sentence should help the viewer understand their world *or* weaponize it for better outcomes.
-  - **Ideal-world psychology** doesn’t cut it. We make **real-world psychology**—the kind that exposes what *actually* goes on in minds, dynamics, relationships, workplaces, and power plays.
-  
-  SCRIPT EXAMPLES:
+    SCRIPT STRUCTURE:
+    HOOK (5–10s):
 
-    Example 1: **"The Invisible Power Struggle in Friendships – Why You’re Trapped Without Realizing It"**
-    
-    Hook (5-10s):
-    “You think your best friend has your back, right? You text them when you're feeling down, and they’re always there to give advice. But if you step back for a second... what’s the real dynamic here? Are they truly supporting you, or are they subtly using you?”
-    (Sound: Echoing whisper, followed by a sharp silence)
-    
-    Concept (10-15s):
-    “What you're dealing with is **emotional dependency** in the guise of friendship. Your friend is playing on your vulnerabilities to keep you hooked. They're using **role theory** to position themselves as the 'savior' in your life, maintaining power by making you feel weak without them.”
-    (Sound: Subtle ticking, rising tension)
-    
-    Real-World Example (25-35s):
-    “Let’s get real: imagine this. You’re going through a tough breakup, and your friend seems to know exactly what to say. They’re always there, comforting you, telling you what you need to hear. But after a while, you start noticing something strange. Every time you start to celebrate a victory—whether it’s a new job offer or a date with someone—your friend pulls away. They’re no longer as interested. But when you fall back into your emotional hole, they swoop in again, ‘saving’ you. Every time you start to find your own footing, they subtly remind you that you *need* them. It’s a game. And the worst part? You don’t even realize you’re being manipulated into thinking you can’t live without them. It’s like you’re a player in their narrative, and they’re controlling the script.”
-    (Sound: Soft, foreboding ambient music, increasing tension)
-    
-    Psychological Insight (10-15s):
-    “This is **attachment manipulation** at its finest. Your friend is deliberately creating a power imbalance to keep you emotionally dependent on them. They know how to make you feel small when you’re doing well so that they can play the hero when you’re struggling. It’s **narcissistic supply** for them—they need your emotional chaos to feel needed, important, and stable in their own fragile sense of self.”
-    (Sound: Sudden pause, deep inhale)
-    
-    Actionable Tip (10-15s):
-    “Next time they start pulling you down with ‘helpful advice’, stop and ask yourself: ‘Why do I feel smaller after talking to them?’ Start setting emotional boundaries. Don’t let them define your worth. When you feel them ‘saving’ you, recognize the manipulation and assert your own needs. Build your own story—you don’t need to be the sidekick in theirs.”
-    (Sound: Empowering bass drop, resolution)
-    
+    Purpose: Deliver a hard-hitting emotional jolt to instantly engage the viewer.
+
+    Content: Use a visceral sentence or moment that reflects confusion, pain, or psychological tension. No fluff—drop the audience straight into a chaotic or emotionally raw moment that reflects the psychological problem.
+
+    Writing Style: Minimalistic, direct, emotionally intense. Use first- or second-person language for immediacy.
+
+    CONCEPT (10–15s):
+
+    Purpose: Introduce the psychological concept without textbook jargon. Explain what it feels like before what it is.
+
+    Content: Describe the sensation or pattern a person experiences. Lead with the real-world symptoms of the concept, then briefly name it.
+
+    Tone: Grounded, gritty, empathetic. Avoid idealism or oversimplification.
+
+    REAL-WORLD EXAMPLE (35–50s, ~120–150 words):
+
+    Purpose: Illustrate the psychological concept through a highly realistic, emotionally complex situation.
+
+    Content: Build a short narrative involving multiple overlapping psychological forces (e.g., fear of abandonment + learned helplessness + subtle gaslighting). It should reflect the messy way these concepts appear in life—not clean, not linear, not labeled. Include the stakes, emotional conflict, and internal/external behaviors.
+
+    Length: This section must be detailed—at least 120–150 words.
+
+    Stakes: Stakes should be high and personal. What might the person lose—sanity, love, self-respect—if they don’t recognize the pattern?
+
+    Layering: Layer at least two or more interlocking psychological dynamics. Life is rarely single-issue.
+
+    Domains: Could include work conflict, family tension, relationship dysfunction, social manipulation, self-doubt spirals, etc.
+
+    Writing Style: Cinematic, emotionally rich, brutally honest. It should feel like something that could have happened to the viewer—or already has.
+
+    PSYCHOLOGICAL INSIGHT (10–15s):
+
+    Purpose: Name the invisible forces in the story. Connect behavior to psychological truth.
+
+    Content: Reveal what was actually happening under the surface. Use psychological terms (attachment theory, intermittent reinforcement, social comparison, etc.) but explain them naturally through the story.
+
+    Tone: Grounding, reflective, authoritative. Give viewers language for what they’ve felt but couldn’t explain.
+
+    ACTIONABLE TIP (10–15s):
+
+    Purpose: Provide a tangible step the viewer can take to counter or interrupt the pattern.
+
+    Content: Share a single, grounded behavioral change that reflects power, clarity, or healthy boundaries. Avoid vague advice—focus on what to actually do (e.g., "Only respond to texts when calm.", "Start writing what you’re afraid to say.", "Pay attention to how your body reacts in certain conversations.").
+
+    Style: Empowering, straight-talking, no fluff. Speak from lived emotional truth. Acknowledge that applying the tip might be hard—and say why it’s worth it.
+
     CTA (5s):
-    “Ready to break free from toxic friendship dynamics? Follow for more real, raw strategies for navigating complex relationships.”
-    (Sound: Final uplifting sting)
 
-    Example 2: **"The Hidden Cost of People-Pleasing – Why You're Sabotaging Your Life Without Knowing It"**
-    
-    Hook (5-10s):
-    “Do you find yourself constantly saying ‘yes’ to things even when you really don’t want to? That gut-twisting feeling? Guess what: you’re stuck in a cycle of **people-pleasing**, and it’s wrecking your life.”
-    (Sound: Heartbeat quickening, subtle anxiety)
-    
-    Concept (10-15s):
-    “People-pleasing is rooted in **avoidant attachment**—you’re terrified of rejection, so you say ‘yes’ to keep the peace. You think you’re being kind, but in reality, you’re building a wall around your true self. Over time, this leads to **burnout**, **resentment**, and a total loss of your identity.”
-    (Sound: Faint breathing, slow but intense)
-    
-    Real-World Example (25-35s):
-    “Imagine this: Your boss asks you to take on a project that’s way outside your job description. You’re already drowning in work, but you can’t say no. The thought of being seen as ‘selfish’ or ‘lazy’ terrifies you. Then, your friend invites you to a party you don’t have the energy for, but you say ‘yes’ anyway, because you don’t want to disappoint them. This continues until your entire life is packed with commitments you don’t want to keep. You’re overwhelmed, but you can’t escape the cycle. Every time you say ‘yes’, you lose a little bit of yourself. You stop honoring your own boundaries. And you don’t even realize it’s happening until you’re burnt out and resentful.”
-    (Sound: Drowning sound effect, growing chaos)
-    
-    Psychological Insight (10-15s):
-    “This is **self-rejection** in action. Every time you say ‘yes’ to avoid conflict or rejection, you’re rejecting yourself. You’ve trained others to ignore your boundaries because you don’t honor them yourself. The result? **Guilt-tripping** becomes the tool that keeps you in line—and the more you comply, the more trapped you become in other people’s demands.”
-    (Sound: Sudden, sharp silence)
-    
-    Actionable Tip (10-15s):
-    “Next time you feel the urge to say ‘yes’, pause. Ask yourself: ‘What do I actually want?’ Practice saying ‘no’ with empathy and without guilt. You don’t have to explain yourself. Start reclaiming your time, your energy, and your worth. You are not obligated to meet everyone else’s needs at the expense of your own.”
-    (Sound: Soft but clear affirming tone)
-    
+    Purpose: Invite the viewer to follow for more grounded, applicable psychological insight.
+
+    Content: Tie back to the tone of clarity and control—e.g., "Follow for more psychology that gives you leverage in real life."
+
+    Style: Clean, clear, declarative. Speak to people who want to stop feeling lost and start feeling in control.
+
+
+
+    VISUAL & AUDIO GUIDELINES:
+    - **Characters**:
+      * Should feel *real*—not polished influencers. Show tired eyes, messy hair, tension in the shoulders.
+      * Expressions and movements must be subtle but telling—avoid over-acting.
+      * Clothing should reflect context: workplace attire, loungewear for emotional scenes, etc.
+
+    - **Environments**:
+      * Should mirror emotional states—chaotic, sterile, dark, or overly bright.
+      * Use realistic clutter (papers, unwashed mugs, unread books) to suggest mental/emotional state.
+      * Colors should match emotional tone: muted palettes for hopelessness, saturated lighting for overwhelm, grayscale flashes for flashbacks or moments of disconnection.
+
+    - **Lighting**:
+      * Low-key lighting with practical sources (lamps, phones, monitors).
+      * Harsh lights for moments of exposure or emotional confrontation.
+      * Soft contrast for introspection or emotional insight.
+
+    - **Sound Effects**:
+      * Use diegetic sounds (phones buzzing, doors closing, clocks ticking) to heighten realism.
+      * Strategic silences before and after big emotional beats or reveals.
+      * Never overproduce—let sound support emotion, not dominate it.
+
+    - **Camera Motion**:
+      * Slight hand-held effect during high-stress moments.
+      * Static shots for powerlessness or control.
+      * Push-ins or pull-backs during insight or perspective shifts.
+
+    NOTES:
+
+    - Always **name** the psychological principles (e.g., cognitive dissonance, gaslighting, intermittent reinforcement). Viewers need vocabulary to recognize what they’re living through.
+    - Encourage **multiple concepts** per scenario. Life isn’t siloed. Interlocking dynamics are where the real magic happens.
+    - Every detail in **visuals**, **dialogue**, and **sound** should reflect emotional truth and psychological weight.
+    - Target audience = people dealing with real pain: toxic relationships, manipulative bosses, family betrayal, self-doubt, burnout. Speak *to them*, not above them.
+    - We’re not in the business of hope—we sell **understanding**, **agency**, and **psychological leverage**.
+    - This is content for people living in **gray zones**—your job is to expose the hidden dynamics that control them.
+
+    FINAL REMINDER:
+    We are not content creators. We are battlefield psychologists turning insights into weapons of clarity.
+    The audience doesn’t just need to *watch*—they need to *feel seen* and *gain power* from every second.
+    We want to give detailed and thorough, reseaarch intensive real world examples of the workings of the psychological concepts. So make sure to write real world examples section more length and deatiled.
+
+    SCRIPT EXAMPLES TO CONVEY WHAT LEVEL OF SCRIPT CONTENT WE WANT:
+
+    Script Example 1: "Why You Always Feel Like the Bad Guy—Even When You’re the One Being Hurt"
+    HOOK (5–10s):
+    "Ever walked away from an argument knowing you were right—but still feeling like the villain?"
+
+    CONCEPT (10–15s):
+    That twisting guilt in your stomach after you stand up for yourself? That’s not conscience—it’s conditioning. If you grew up with emotional parentification or were praised for being “the mature one,” you probably learned that your needs are a problem, and your silence is love. That guilt isn’t your fault—it was planted.
+
+    REAL-WORLD EXAMPLE (25–35s):
+    Your boyfriend crosses a line—flirts with someone right in front of you at a party. You don’t say anything there. You don’t want to be ‘crazy’. But on the ride home, you bring it up. Calmly. You say it made you uncomfortable. He pauses, looks wounded. Says, “Wow. I was just trying to make the night fun. I didn’t think you’d twist it like that.”
+    Now you feel like the problem. Like you ruined the night. So you apologize. Again. And that night, you lie awake thinking, “Was I overreacting?”
+    You weren’t. You were being emotionally manipulated.
+    And the worst part? This isn’t the first time.
+    You’ve done this dance before—with your mom, when you said you didn’t want to come home for the holidays. With your boss, when you said no to overtime. Every time you speak your truth, someone makes you feel like you’ve hurt them… just for having boundaries.
+
+    PSYCHOLOGICAL INSIGHT (10–15s):
+    This is what guilt-conditioning looks like. You’ve been trained to associate asserting yourself with hurting others. So now, guilt shows up not when you do something wrong—but when you finally do something right for yourself. It’s also fawn response: a trauma pattern where you make yourself small to avoid rejection or conflict.
+
+    ACTIONABLE TIP (10–15s):
+    When that wave of guilt hits you after setting a boundary, don’t suppress it. Track it. Literally write down: “What did I say?” “Was it disrespectful?” “Did I cross a line—or did I just protect one?” Guilt doesn’t always mean you did something wrong. Sometimes it means you’re healing in a system that counted on you staying broken. The goal isn’t to stop feeling guilty overnight—it’s to stop mistaking that guilt as truth.
+
     CTA (5s):
-    “Tired of being the people-pleaser? Follow for real tips on how to reclaim your life and boundaries.”
-    (Sound: Uplifting resolve)
+    Follow for real-world psychology that helps you stop apologizing for your own boundaries—and start taking your life back.
+
+    Script Example 2: "Why You're Overperforming at Work—And Still Feel Like a Fraud"
+    HOOK (5–10s):
+    You stay late. You overdeliver. You fix problems no one else even notices.
+    But you still walk into every meeting waiting to be exposed.
+
+    CONCEPT (10–15s):
+    This isn’t about competence—it’s about core shame.
+    You’re not trying to excel... you’re trying to earn the right to exist.
+    You confuse your output with your value because somewhere along the way, someone taught you that being wasn’t enough. You had to prove it.
+
+    REAL-WORLD EXAMPLE (25–35s):
+    Your manager gives you vague praise in front of the team—"Shoutout to Priya for stepping up last week." Everyone claps.
+    But your chest tightens. You think, They have no idea I almost missed that deadline. They don’t see how scattered I am.
+    So instead of celebrating, you double down. You take on the next project, even though you're already burned out.
+    At home, you're too tired to cook. You cancel on your friend’s birthday. But you tell yourself it's just this season—just until you feel like you’re truly good enough to deserve the seat you're already in.
+    You never get there. Because no matter how much you do, that quiet voice whispers: You're still not enough.
+
+    PSYCHOLOGICAL INSIGHT (10–15s):
+    This is imposter syndrome fused with achievement-based self-worth—often rooted in childhood environments where love was conditional.
+    You were praised for your results, not your personhood. Now, approval feels like a drug you need to keep earning.
+    That internal fraud feeling? It’s not evidence you’re failing. It’s the residue of being unseen for who you are beneath your output.
+
+    ACTIONABLE TIP (10–15s):
+    Start tracking a different kind of metric: integrity-based effort.
+    Each day, ask yourself: “Did I show up honestly?” “Did I do what I could—without betraying myself?”
+    Also, start sharing half-baked thoughts in meetings. Not polished. Not perfect. Just honest.
+    The goal isn’t to impress—it’s to practice being visible without needing to be invincible.
+    It’s uncomfortable at first. But it’s how you start building worth from within.
+
+    CTA (5s):
+    Follow for raw psychological tools to break free from high-functioning self-erasure and reclaim your value on your own terms.
+
+
 """
 
 

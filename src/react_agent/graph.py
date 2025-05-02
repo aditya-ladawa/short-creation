@@ -14,12 +14,14 @@ from langgraph.types import interrupt, Command
 from langgraph.constants import START, END
 from langchain_deepseek import ChatDeepSeek
 from langchain_core.runnables import RunnableConfig
+from langchain_groq import ChatGroq
 
 
 
-# Load the chat model
-model = ChatDeepSeek(model='deepseek-chat', temperature=0.0)
+## Load the chat model
+model = ChatDeepSeek(model='deepseek-chat', temperature=0.6)
 # model = load_chat_model('google_vertexai/gemini-2.0-flash')
+# model = ChatGroq(model='meta-llama/llama-4-scout-17b-16e-instruct')
 
 
 

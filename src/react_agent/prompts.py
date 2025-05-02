@@ -18,89 +18,68 @@ SCRIPT_GEN_PROMPT = """
     5. **Action-first**: Give the viewer leverage—something they can *use today* to gain clarity, control, or peace in a chaotic world.
 
     SCRIPT STRUCTURE:
+
     HOOK (5–10s):
-
     Purpose: Deliver a hard-hitting emotional jolt to instantly engage the viewer.
-
     Content: Use a visceral sentence or moment that reflects confusion, pain, or psychological tension. No fluff—drop the audience straight into a chaotic or emotionally raw moment that reflects the psychological problem.
-
     Writing Style: Minimalistic, direct, emotionally intense. Use first- or second-person language for immediacy.
 
     CONCEPT (10–15s):
-
     Purpose: Introduce the psychological concept without textbook jargon. Explain what it feels like before what it is.
-
     Content: Describe the sensation or pattern a person experiences. Lead with the real-world symptoms of the concept, then briefly name it.
-
     Tone: Grounded, gritty, empathetic. Avoid idealism or oversimplification.
-
+    
     REAL-WORLD EXAMPLE (35–50s, ~120–150 words):
-
     Purpose: Illustrate the psychological concept through a highly realistic, emotionally complex situation.
-
     Content: Build a short narrative involving multiple overlapping psychological forces (e.g., fear of abandonment + learned helplessness + subtle gaslighting). It should reflect the messy way these concepts appear in life—not clean, not linear, not labeled. Include the stakes, emotional conflict, and internal/external behaviors.
-
     Length: This section must be detailed—at least 120–150 words.
-
     Stakes: Stakes should be high and personal. What might the person lose—sanity, love, self-respect—if they don’t recognize the pattern?
-
     Layering: Layer at least two or more interlocking psychological dynamics. Life is rarely single-issue.
-
     Domains: Could include work conflict, family tension, relationship dysfunction, social manipulation, self-doubt spirals, etc.
-
     Writing Style: Cinematic, emotionally rich, brutally honest. It should feel like something that could have happened to the viewer—or already has.
 
     PSYCHOLOGICAL INSIGHT (10–15s):
-
     Purpose: Name the invisible forces in the story. Connect behavior to psychological truth.
-
     Content: Reveal what was actually happening under the surface. Use psychological terms (attachment theory, intermittent reinforcement, social comparison, etc.) but explain them naturally through the story.
-
     Tone: Grounding, reflective, authoritative. Give viewers language for what they’ve felt but couldn’t explain.
 
     ACTIONABLE TIP (10–15s):
-
     Purpose: Provide a tangible step the viewer can take to counter or interrupt the pattern.
-
     Content: Share a single, grounded behavioral change that reflects power, clarity, or healthy boundaries. Avoid vague advice—focus on what to actually do (e.g., "Only respond to texts when calm.", "Start writing what you’re afraid to say.", "Pay attention to how your body reacts in certain conversations.").
-
     Style: Empowering, straight-talking, no fluff. Speak from lived emotional truth. Acknowledge that applying the tip might be hard—and say why it’s worth it.
-
+    
     CTA (5s):
-
     Purpose: Invite the viewer to follow for more grounded, applicable psychological insight.
-
     Content: Tie back to the tone of clarity and control—e.g., "Follow for more psychology that gives you leverage in real life."
-
     Style: Clean, clear, declarative. Speak to people who want to stop feeling lost and start feeling in control.
 
-
-
     VISUAL & AUDIO GUIDELINES:
+
     - **Characters**:
-      * Should feel *real*—not polished influencers. Show tired eyes, messy hair, tension in the shoulders.
-      * Expressions and movements must be subtle but telling—avoid over-acting.
-      * Clothing should reflect context: workplace attire, loungewear for emotional scenes, etc.
+      * Use relatable-looking people — avoid overly polished, posed, or commercial-style models.
+      * Prefer casual body language, simple facial expressions, and natural settings.
+      * Good search phrases: "man thinking alone", "woman walking in city", "couple talking", "person sitting at desk".
 
     - **Environments**:
-      * Should mirror emotional states—chaotic, sterile, dark, or overly bright.
-      * Use realistic clutter (papers, unwashed mugs, unread books) to suggest mental/emotional state.
-      * Colors should match emotional tone: muted palettes for hopelessness, saturated lighting for overwhelm, grayscale flashes for flashbacks or moments of disconnection.
+      * Choose settings that reflect everyday life — homes, streets, offices, cafes, transit.
+      * Stick to broad emotional cues: indoors for tension or isolation, outdoors for escape or movement.
+      * Search ideas: "empty room", "city street at night", "home office", "person by window".
 
-    - **Lighting**:
-      * Low-key lighting with practical sources (lamps, phones, monitors).
-      * Harsh lights for moments of exposure or emotional confrontation.
-      * Soft contrast for introspection or emotional insight.
-
-    - **Sound Effects**:
-      * Use diegetic sounds (phones buzzing, doors closing, clocks ticking) to heighten realism.
-      * Strategic silences before and after big emotional beats or reveals.
-      * Never overproduce—let sound support emotion, not dominate it.
+    - **Lighting & Color**:
+      * Choose clips with soft, natural light for serious or emotional moments.
+      * Avoid over-lit or high-contrast commercial lighting unless it fits the story.
 
     - **Camera Motion**:
-      * Slight hand-held effect during high-stress moments.
-      * Static shots for powerlessness or control.
-      * Push-ins or pull-backs during insight or perspective shifts.
+      * Use mostly static or gently moving shots — slow pans, natural zooms, or still frames work best.
+      * Avoid dramatic or cinematic camera styles unless necessary.
+
+    - **Sound Effects**:
+      * Use simple, universal sounds — footsteps, ambient room noise, city sounds, faint phone pings.
+      * When unsure, leave space for silence or use soft ambient music to match mood.
+
+    - **Transitions**:
+      * Keep transitions minimal and story-driven — basic “cut”, “fade”, or “dissolve” is enough.
+      * Use timing and pacing to control mood instead of flashy edits.
 
     NOTES:
 

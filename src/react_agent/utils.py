@@ -4,7 +4,9 @@ from langchain.chat_models import init_chat_model
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import BaseMessage
 from langchain_core.documents import Document
-from typing_extensions import Optional
+from typing_extensions import Optional, List, Dict
+import re
+import json
 
 
 def get_message_text(msg: BaseMessage) -> str:
@@ -170,3 +172,82 @@ def videoscript_to_text(script_obj: VideoScript) -> str:
 #         lines.append("")  # Section separator
     
 #     return "\n".join(lines)
+
+
+
+def extract_video_data(pexels_response: Dict) -> List[Dict]:
+    """Extract and format video data from Pexels API response"""
+    if not pexels_response.get("data"):
+        return []
+        
+    videos = pexels_response["data"].get("videos", [])
+    
+    formatted_videos = []
+    for video in videos:
+        formatted = {
+            "id": video["id"],
+            "width": video["width"],
+            "height": video["height"],
+            "duration": video["duration"],
+            "author": video["user"]["name"],
+            "author_url": video["user"]["url"],
+            "video_url": video["url"],
+            "preview_image": video["image"],
+            "video_files": []
+        }
+        
+        for file in video["video_files"]:
+            formatted["video_files"].append({
+                "file_type": file["file_type"],
+                "width": file["width"],
+                "height": file["height"],
+                "link": file["link"],
+                "quality": file["quality"],
+                "fps": file.get("fps"),
+                "size": file.get("size")
+            })
+            
+        formatted_videos.append(formatted)
+    
+    return formatted_videos
+
+# def extract_video_data(videos_dict):
+#     results = []
+#     for video in videos_dict.get('data', {}).get('videos', []):
+#         video_info = {
+#             'id': video.get('id'),
+#             'duration': video.get('duration'),
+#             'width': video.get('width'),
+#             'height': video.get('height'),
+#             'preview_image': video.get('image'),
+#             'author': video.get('user', {}).get('name'),
+#             'author_url': video.get('user', {}).get('url'),
+#             'video_url': video.get('url'),
+#             'video_files': []
+#         }
+
+#         for vf in video.get('video_files', []):
+#             video_info['video_files'].append({
+#                 'quality': vf.get('quality'),
+#                 'file_type': vf.get('file_type'),
+#                 'width': vf.get('width'),
+#                 'height': vf.get('height'),
+#                 'fps': vf.get('fps'),
+#                 'link': vf.get('link'),
+#                 'size': vf.get('size')
+#             })
+
+#         results.append(video_info)
+
+#     return results
+def sanitize_filename(name: str) -> str:
+    """
+    Convert a string to a safe filename:
+    - Replace spaces with underscores
+    - Remove non-alphanumeric characters (except underscores and dashes)
+    - Collapse multiple underscores
+    """
+    name = name.replace(" ", "_")
+    name = re.sub(r"[^\w\-]", "", name)  # Keep alphanumerics, underscores, dashes
+    name = re.sub(r"_+", "_", name)  # Collapse multiple underscores
+    return name.strip("_")

@@ -24,10 +24,23 @@ class SectionSound(BaseModel):
     )
 
 class Visual(BaseModel):
-    scene: str = Field(..., description="Detailed description of the scene/action")
-    camera_angle: str = Field(..., description="Shot type (e.g., 'extreme close-up', 'over-the-shoulder')")
-    transition: str = Field(..., description="How this scene connects to next (e.g., 'quick cut', 'slow dissolve')")
-    sound: SectionSound = Field(..., description="Section-specific sound enhancements")
+    scene: str = Field(
+        ...,
+        description="Describe the setting and action using keywords suitable for Pexels stock footage (e.g., 'tired woman sitting alone at kitchen table', 'man staring blankly out a rainy window'). Include posture, facial expression, setting, and mood."
+    )
+    camera_angle: str = Field(
+        ...,
+        description="Specify the type of stock footage framing that best captures the emotion (e.g., 'close-up of facial expression', 'side profile in moody lighting', 'overhead shot of cluttered desk'). Keep it Pexels-search friendly."
+    )
+    transition: str = Field(
+        ...,
+        description="Simple visual transition keyword (e.g., 'cut to', 'fade to black', 'match cut') indicating how this clip flows into the next. Consider pacing and emotional tone."
+    )
+    sound: SectionSound = Field(
+        ...,
+        description="Section-specific sound elements that enhance emotion or realism. Pair well with the visuals described."
+    )
+
 
 class VideoSection(BaseModel):
     section: str = Field(..., description="Script section name")
@@ -60,6 +73,9 @@ class RetrievalQueries(BaseModel):
 
 
 # #################################
+
+
+
 # from typing_extensions import TypedDict, Optional
 # from typing import List
 
@@ -104,66 +120,66 @@ class RetrievalQueries(BaseModel):
 
 # #######################################
 
-# # from typing_extensions import TypedDict, Optional, Annotated
-# # from typing import List
+# from typing_extensions import TypedDict, Optional, Annotated
+# from typing import List
 
-# # class GlobalSound(TypedDict):
-# #     """Background music that plays throughout the entire video"""
-# #     music: Annotated[str, "A detailed description of the background track's genre, mood, tempo, instruments, and atmosphere. Example: 'Low-tempo ambient piano with occasional rainfall sounds, evoking solitude and reflection.'"]
+# class GlobalSound(TypedDict):
+#     """Background music that plays throughout the entire video"""
+#     music: Annotated[str, "A detailed description of the background track's genre, mood, tempo, instruments, and atmosphere. Example: 'Low-tempo ambient piano with occasional rainfall sounds, evoking solitude and reflection.'"]
 
-# # class SectionSound(TypedDict):
-# #     """Sound elements specific to individual sections"""
-# #     sound_effects: Annotated[Optional[str], 
-# #         "Describe specific sound effects such as footsteps, glass breaking, digital beeps, or crowd noise. Include timing relevance and emotional tone, e.g., 'soft echoing footsteps on marble floor during a suspenseful monologue.'"
-# #     ]
-# #     silence_duration: Annotated[Optional[str], 
-# #         "If silence is used for effect, describe its purpose and duration. Example: '1.5 seconds of dead silence before jump scare to create tension.'"
-# #     ]
-# #     sound_effect_timing: Annotated[Optional[str], 
-# #         "Specify when in the section the sound effect happens. Example: 'Just after the character slams the door (0:14).'"]
+# class SectionSound(TypedDict):
+#     """Sound elements specific to individual sections"""
+#     sound_effects: Annotated[Optional[str], 
+#         "Describe specific sound effects such as footsteps, glass breaking, digital beeps, or crowd noise. Include timing relevance and emotional tone, e.g., 'soft echoing footsteps on marble floor during a suspenseful monologue.'"
+#     ]
+#     silence_duration: Annotated[Optional[str], 
+#         "If silence is used for effect, describe its purpose and duration. Example: '1.5 seconds of dead silence before jump scare to create tension.'"
+#     ]
+#     sound_effect_timing: Annotated[Optional[str], 
+#         "Specify when in the section the sound effect happens. Example: 'Just after the character slams the door (0:14).'"]
 
-# # class Visual(TypedDict):
-# #     scene: Annotated[str, 
-# #         "Describe the environment in extreme detail using rich visual language, including setting, lighting, objects, colors, mood, background elements, and atmosphere. Example: 'A man stands on a graffiti-covered rooftop at dusk, city skyline glowing orange behind him, smoke curling from a cigarette, wind fluttering his coat.'"
-# #     ]
-# #     camera_angle: Annotated[str, 
-# #         "Define the type of camera angle and its narrative purpose. Include terms like aerial shot, over-the-shoulder, dolly zoom, slow pan, medium close-up, handheld chaos. Example: 'Over-the-shoulder shot revealing a woman's reflection in a cracked mirror.'"
-# #     ]
-# #     transition: Annotated[str, 
-# #         "Describe how the current shot transitions into the next. Be explicit: 'Hard cut to black', 'Soft dissolve into dream sequence', 'Quick whip pan transition to simulate confusion.'"
-# #     ]
-# #     sound: SectionSound
+# class Visual(TypedDict):
+#     scene: Annotated[str, 
+#         "Describe the environment in extreme detail using rich visual language, including setting, lighting, objects, colors, mood, background elements, and atmosphere. Example: 'A man stands on a graffiti-covered rooftop at dusk, city skyline glowing orange behind him, smoke curling from a cigarette, wind fluttering his coat.'"
+#     ]
+#     camera_angle: Annotated[str, 
+#         "Define the type of camera angle and its narrative purpose. Include terms like aerial shot, over-the-shoulder, dolly zoom, slow pan, medium close-up, handheld chaos. Example: 'Over-the-shoulder shot revealing a woman's reflection in a cracked mirror.'"
+#     ]
+#     transition: Annotated[str, 
+#         "Describe how the current shot transitions into the next. Be explicit: 'Hard cut to black', 'Soft dissolve into dream sequence', 'Quick whip pan transition to simulate confusion.'"
+#     ]
+#     sound: SectionSound
 
-# # class VideoSection(TypedDict):
-# #     section: Annotated[str, 
-# #         "Label the section’s narrative role or emotional tone, such as 'Introduction – Calm Tension', 'Turning Point – Realization', 'Climax – Confrontation', or 'Resolution – Isolation'."
-# #     ]
-# #     text: Annotated[str, 
-# #         "The actual script or dialogue/narration for the section. Should reflect emotional tone, subtext, and delivery cues if needed."
-# #     ]
-# #     visual: Visual
+# class VideoSection(TypedDict):
+#     section: Annotated[str, 
+#         "Label the section’s narrative role or emotional tone, such as 'Introduction – Calm Tension', 'Turning Point – Realization', 'Climax – Confrontation', or 'Resolution – Isolation'."
+#     ]
+#     text: Annotated[str, 
+#         "The actual script or dialogue/narration for the section. Should reflect emotional tone, subtext, and delivery cues if needed."
+#     ]
+#     visual: Visual
 
-# # class VideoScript(TypedDict):
-# #     title: Annotated[str, 
-# #         "Concise, compelling title of the video. Should signal emotional or conceptual weight. Example: 'The Psychology of Silence in Power Struggles'."
-# #     ]
-# #     length: Annotated[str, 
-# #         "Total video duration in seconds, e.g., '120s', or '2 minutes'. Used for timing all audio/visuals precisely."
-# #     ]
-# #     background_music: GlobalSound
-# #     sections: Annotated[List[VideoSection], 
-# #         "An ordered list of detailed video sections, each with immersive visuals, precise transitions, FX timings, and layered psychological meaning."
-# #     ]
+# class VideoScript(TypedDict):
+#     title: Annotated[str, 
+#         "Concise, compelling title of the video. Should signal emotional or conceptual weight. Example: 'The Psychology of Silence in Power Struggles'."
+#     ]
+#     length: Annotated[str, 
+#         "Total video duration in seconds, e.g., '120s', or '2 minutes'. Used for timing all audio/visuals precisely."
+#     ]
+#     background_music: GlobalSound
+#     sections: Annotated[List[VideoSection], 
+#         "An ordered list of detailed video sections, each with immersive visuals, precise transitions, FX timings, and layered psychological meaning."
+#     ]
 
-# # class SearchQuery(TypedDict):
-# #     """Search the indexed documents for a query."""
-# #     query: Annotated[str, "The exact question or concept you want to retrieve information about. Be specific and context-rich. Example: 'How does silence function as a dominance display in workplace dynamics?'"]
+# class SearchQuery(TypedDict):
+#     """Search the indexed documents for a query."""
+#     query: Annotated[str, "The exact question or concept you want to retrieve information about. Be specific and context-rich. Example: 'How does silence function as a dominance display in workplace dynamics?'"]
 
-# # class RetrievalQueries(TypedDict):
-# #     """
-# #     A list of search queries designed to retrieve relevant psychological concepts, 
-# #     studies, and applications for script generation.
-# #     """
-# #     queries: Annotated[List[str], 
-# #         "Each query should target nuanced, real-world psychological dynamics. Example: ['Cognitive dissonance in high-stakes negotiations', 'Subtle gaslighting techniques in long-term relationships']"
-# #     ]
+# class RetrievalQueries(TypedDict):
+#     """
+#     A list of search queries designed to retrieve relevant psychological concepts, 
+#     studies, and applications for script generation.
+#     """
+#     queries: Annotated[List[str], 
+#         "Each query should target nuanced, real-world psychological dynamics. Example: ['Cognitive dissonance in high-stakes negotiations', 'Subtle gaslighting techniques in long-term relationships']"
+#     ]

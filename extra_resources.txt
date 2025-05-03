@@ -1,0 +1,15 @@
+### FORCED ALIGNERS:
+http://github.com/maxrmorrison/pyfoal
+
+https://github.com/r4victor/syncabook
+
+https://github.com/r4victor/afaligner
+
+### TTS
+
+https://github.com/remsky/Kokoro-FastAPI
+
+https://github.com/hexgrad/kokoro/tree/main/kokoro.js/voices
+
+https://github.com/hexgrad/kokoro/tree/main
+

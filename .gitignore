@@ -172,3 +172,7 @@ cython_debug/
 
 
 my_test_files/
+
+ctc-forced-aligner/
+
+kokoro_files/

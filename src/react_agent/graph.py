@@ -119,7 +119,6 @@ async def get_videos(state: State):
 
     # print(latest_script_obj)
 
-
     # Create a sanitized directory for the video set
     safe_title = sanitize_filename(latest_script_obj.title)
     video_dir = Path(f"my_test_files/videos/{safe_title}/")

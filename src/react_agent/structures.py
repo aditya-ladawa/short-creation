@@ -1,5 +1,12 @@
 from typing import List, Optional, Dict
 from pydantic import BaseModel, Field
+from pydantic import HttpUrl, Field
+from typing import Literal
+from pydantic import BaseModel, Field, HttpUrl, field_validator
+from pathlib import Path
+from typing import Literal, Optional
+from datetime import datetime
+import re
 
 class GlobalSound(BaseModel):
     """Background music that plays throughout the entire video"""
@@ -72,114 +79,116 @@ class RetrievalQueries(BaseModel):
     )
 
 
-# #################################
 
+def ensure_path(path: str | Path) -> Path:
+    """Ensure we always work with Path objects internally"""
+    return path if isinstance(path, Path) else Path(path)
 
+class VideoMetadata(BaseModel):
+    """Validated structure for Pexels video assets"""
+    
+    # Required Fields
+    script_section: str = Field(
+        ...,
+        description="Script section ID this video matches",
+        examples=["intro", "conclusion_1"]
+    )
+    
+    pexels_id: int = Field(
+        ...,
+        gt=0,
+        description="Pexels video ID for attribution"
+    )
+    
+    file_path: str = Field(
+        description="Local path to downloaded video file (as string)"
+    )
+    
+    search_query: str = Field(
+        ...,
+        min_length=3,
+        description="Original search query used"
+    )
 
-# from typing_extensions import TypedDict, Optional
-# from typing import List
+    # Optional Fields (with validation)
+    author: Optional[str] = Field(
+        None,
+        min_length=2,
+        description="Video creator name"
+    )
 
-# class GlobalSound(TypedDict):
-#     """Background music that plays throughout the entire video"""
-#     music: str
+    author_url: Optional[str] = Field(
+        None,
+        description="Pexels profile URL (as string)"
+    )
+    
+    video_url: Optional[str] = Field(
+        None,
+        description="Pexels source page (as string)"
+    )
 
-# class SectionSound(TypedDict):
-#     """Sound elements specific to individual sections"""
-#     sound_effects: Optional[str]
-#     silence_duration: Optional[str]
-#     sound_effect_timing: Optional[str]
+    
+    dimensions: Optional[str] = Field(
+        None,
+        pattern=r"^\d+x\d+$",
+        examples=["1920x1080", "720x1280"]
+    )
+    
+    duration: Optional[float] = Field(
+        None,
+        gt=0,
+        le=600,
+        description="Duration in seconds (max 10m)"
+    )
+    
+    quality: Optional[Literal["sd", "hd", "uhd"]] = Field(
+        None,
+        description="Pexels quality tier"
+    )
+    
+    downloaded_at: Optional[datetime] = Field(
+        default_factory=datetime.now,
+        description="When file was saved locally"
+    )
 
-# class Visual(TypedDict):
-#     scene: str
-#     camera_angle: str
-#     transition: str
-#     sound: SectionSound
+    # Derived Fields
+    @property
+    def attribution(self) -> str:
+        return f"Video by {self.author} from Pexels" if self.author else "Pexels Stock Video"
 
-# class VideoSection(TypedDict):
-#     section: str
-#     text: str
-#     visual: Visual
+    @field_validator('file_path')
+    @classmethod 
+    def validate_file_path(cls, v: str) -> str:
+        path = Path(v)
+        if not path.exists():
+            raise ValueError(f"File not found: {v}")
+        if not path.is_file():
+            raise ValueError(f"Path is not a file: {v}")
+        return str(path.absolute())  # Return normalized absolute path
 
-# class VideoScript(TypedDict):
-#     title: str
-#     length: str
-#     background_music: GlobalSound
-#     sections: List[VideoSection]
+    @field_validator('dimensions')
+    @classmethod
+    def validate_aspect_ratio(cls, v: str | None) -> str | None:
+        if v:
+            w, h = map(int, v.split('x'))
+            ratio = w / h
+            if not 0.4 <= ratio <= 0.8:  # Portrait orientation check
+                raise ValueError(f"Invalid aspect ratio {ratio:.2f} - expected portrait")
+        return v
 
-# class SearchQuery(TypedDict):
-#     """Search the indexed documents for a query."""
-#     query: str
+    @field_validator('author_url', 'video_url')
+    @classmethod
+    def validate_urls(cls, v: str | None) -> str | None:
+        if v and not v.startswith(('http://', 'https://')):
+            raise ValueError("Invalid URL format")
+        return v
 
-# class RetrievalQueries(TypedDict):
-#     """
-#     A list of search queries designed to retrieve relevant psychological concepts, 
-#     studies, and applications for script generation.
-#     """
-#     queries: List[str]
-
-
-# #######################################
-
-# from typing_extensions import TypedDict, Optional, Annotated
-# from typing import List
-
-# class GlobalSound(TypedDict):
-#     """Background music that plays throughout the entire video"""
-#     music: Annotated[str, "A detailed description of the background track's genre, mood, tempo, instruments, and atmosphere. Example: 'Low-tempo ambient piano with occasional rainfall sounds, evoking solitude and reflection.'"]
-
-# class SectionSound(TypedDict):
-#     """Sound elements specific to individual sections"""
-#     sound_effects: Annotated[Optional[str], 
-#         "Describe specific sound effects such as footsteps, glass breaking, digital beeps, or crowd noise. Include timing relevance and emotional tone, e.g., 'soft echoing footsteps on marble floor during a suspenseful monologue.'"
-#     ]
-#     silence_duration: Annotated[Optional[str], 
-#         "If silence is used for effect, describe its purpose and duration. Example: '1.5 seconds of dead silence before jump scare to create tension.'"
-#     ]
-#     sound_effect_timing: Annotated[Optional[str], 
-#         "Specify when in the section the sound effect happens. Example: 'Just after the character slams the door (0:14).'"]
-
-# class Visual(TypedDict):
-#     scene: Annotated[str, 
-#         "Describe the environment in extreme detail using rich visual language, including setting, lighting, objects, colors, mood, background elements, and atmosphere. Example: 'A man stands on a graffiti-covered rooftop at dusk, city skyline glowing orange behind him, smoke curling from a cigarette, wind fluttering his coat.'"
-#     ]
-#     camera_angle: Annotated[str, 
-#         "Define the type of camera angle and its narrative purpose. Include terms like aerial shot, over-the-shoulder, dolly zoom, slow pan, medium close-up, handheld chaos. Example: 'Over-the-shoulder shot revealing a woman's reflection in a cracked mirror.'"
-#     ]
-#     transition: Annotated[str, 
-#         "Describe how the current shot transitions into the next. Be explicit: 'Hard cut to black', 'Soft dissolve into dream sequence', 'Quick whip pan transition to simulate confusion.'"
-#     ]
-#     sound: SectionSound
-
-# class VideoSection(TypedDict):
-#     section: Annotated[str, 
-#         "Label the section’s narrative role or emotional tone, such as 'Introduction – Calm Tension', 'Turning Point – Realization', 'Climax – Confrontation', or 'Resolution – Isolation'."
-#     ]
-#     text: Annotated[str, 
-#         "The actual script or dialogue/narration for the section. Should reflect emotional tone, subtext, and delivery cues if needed."
-#     ]
-#     visual: Visual
-
-# class VideoScript(TypedDict):
-#     title: Annotated[str, 
-#         "Concise, compelling title of the video. Should signal emotional or conceptual weight. Example: 'The Psychology of Silence in Power Struggles'."
-#     ]
-#     length: Annotated[str, 
-#         "Total video duration in seconds, e.g., '120s', or '2 minutes'. Used for timing all audio/visuals precisely."
-#     ]
-#     background_music: GlobalSound
-#     sections: Annotated[List[VideoSection], 
-#         "An ordered list of detailed video sections, each with immersive visuals, precise transitions, FX timings, and layered psychological meaning."
-#     ]
-
-# class SearchQuery(TypedDict):
-#     """Search the indexed documents for a query."""
-#     query: Annotated[str, "The exact question or concept you want to retrieve information about. Be specific and context-rich. Example: 'How does silence function as a dominance display in workplace dynamics?'"]
-
-# class RetrievalQueries(TypedDict):
-#     """
-#     A list of search queries designed to retrieve relevant psychological concepts, 
-#     studies, and applications for script generation.
-#     """
-#     queries: Annotated[List[str], 
-#         "Each query should target nuanced, real-world psychological dynamics. Example: ['Cognitive dissonance in high-stakes negotiations', 'Subtle gaslighting techniques in long-term relationships']"
-#     ]
+class AudioMetadata(BaseModel):
+    """Metadata for generated TTS audio segments"""
+    section: str = Field(..., description="Script section name")
+    text: str = Field(..., description="Original text input")
+    voice: str = Field(..., description="Voice model used")
+    duration: float = Field(..., description="Audio duration in seconds")
+    sample_rate: int = Field(..., description="Audio sample rate")
+    file_path: str = Field(..., description="Path to WAV file")
+    generated_at: datetime = Field(default_factory=datetime.now)

@@ -20,7 +20,7 @@ import requests
 import json
 import re
 from react_agent.pexels_handler import pexels
-
+from react_agent.handle_kokoro import generate_tts
 
 ## Load the chat model
 model = ChatDeepSeek(model='deepseek-chat', temperature=0.6)
@@ -52,7 +52,11 @@ async def script_generator(state: State) -> Dict[str, Any]:
     script_gen_chain = script_gen_template | model.with_structured_output(VideoScript)
     script_response = await script_gen_chain.ainvoke({"messages": trimmed_messages})
     script_text = videoscript_to_text(script_response)
-    return {"scripts": [script_response], "messages": [AIMessage(content=script_text)]}
+    return {
+        "scripts": [script_response],
+        "messages": [AIMessage(content=script_text)]
+    }
+
 
 # Step 4: Request feedback from the user
 async def request_feedback(state: State) -> Dict[str, Any]:
@@ -100,37 +104,34 @@ async def revise_script(state: State) -> Dict[str, Any]:
     script_response = await script_rev_chain.ainvoke(trimmed_messages)
     script_text = videoscript_to_text(script_response)
 
-    return {"scripts": [script_response], "messages": [AIMessage(content=script_text)]}
+    return {
+        "scripts": [script_response],
+        "messages": [AIMessage(content=script_text)]
+    }
+
 
 # Route the feedback based on user's response
 async def route_feedback(state: State):
     user_feedback = state.messages[-1].content
-
-    if user_feedback.strip().lower() == 'no':
-        return 'get_videos'
+    
+    if user_feedback == 'no':
+        return 'generate_audio'
     else:
         return 'revise_script'
 
 
-async def get_videos(state: State):
-    """Search Pexels for videos matching each visual scene and download them"""
-
+async def get_videos(state: State) -> dict:
+    """Search Pexels for videos matching each visual scene and download them with validated metadata."""
     latest_script_obj = state.scripts[-1]
-
-    # print(latest_script_obj)
-
-    # Create a sanitized directory for the video set
     safe_title = sanitize_filename(latest_script_obj.title)
     video_dir = Path(f"my_test_files/videos/{safe_title}/")
     video_dir.mkdir(parents=True, exist_ok=True)
 
-    # print('safe title: {safe_title}')
-
-    results = []
+    validated_videos = []
+    failed_sections = []
 
     for section in latest_script_obj.sections:
         search_query = section.visual.scene
-
         search_params = {
             "query": search_query,
             "orientation": "portrait",
@@ -139,41 +140,39 @@ async def get_videos(state: State):
             "per_page": 1,
         }
 
-        pexels_response = pexels.search_videos(search_params)
-
-        if pexels_response.get("status_code") != 200:
-            print(f"Failed to find video for: {search_query}")
-            continue
-
-        videos_data = extract_video_data(pexels_response)
-        if not videos_data:
-            print(f"No videos returned for: {search_query}")
-            continue
-
-        best_video = videos_data[0]
-        # print(best_video)
-        target_aspect = 9 / 16
-
-        # Filter to SD quality portrait-oriented videos
-        sd_videos = [
-            v for v in best_video["video_files"]
-            if v["quality"] == "sd" and v["width"] / v["height"] <= target_aspect
-        ]
-        if not sd_videos:
-            sd_videos = [v for v in best_video["video_files"] if v["quality"] == "sd"]
-
-        if not sd_videos:
-            # print(f"No suitable SD video found for: {search_query}")
-            continue
-
-        download_video = min(
-            sd_videos, key=lambda v: abs((v["width"] / v["height"]) - target_aspect))
-        
-        # Generate sanitized filename
-        filename = sanitize_filename(f"{safe_title}_{section.section}") + ".mp4"
-        video_path = video_dir / filename
-
         try:
+            # 1. Search Pexels
+            pexels_response = pexels.search_videos(search_params)
+            if pexels_response.get("status_code") != 200:
+                raise ValueError(f"Pexels API returned {pexels_response.get('status_code')}")
+
+            # 2. Extract and validate video data
+            videos_data = extract_video_data(pexels_response)
+            if not videos_data:
+                raise ValueError("No videos returned from Pexels")
+
+            best_video = videos_data[0]
+            target_aspect = 9 / 16
+
+            # 3. Select best quality video
+            sd_videos = [
+                v for v in best_video["video_files"]
+                if v["quality"] == "sd" and v["width"] / v["height"] <= target_aspect
+            ] or [v for v in best_video["video_files"] if v["quality"] == "sd"]
+
+            if not sd_videos:
+                raise ValueError("No suitable SD video found")
+
+            download_video = min(
+                sd_videos,
+                key=lambda v: abs((v["width"] / v["height"]) - target_aspect)
+            )
+
+            # 4. Download video
+            filename = sanitize_filename(f"{section.section}") + ".mp4"
+            video_path = video_dir / "visuals" / filename
+            video_path.parent.mkdir(parents=True, exist_ok=True)
+
             response = requests.get(download_video["link"], stream=True)
             response.raise_for_status()
 
@@ -181,69 +180,90 @@ async def get_videos(state: State):
                 for chunk in response.iter_content(chunk_size=8192):
                     f.write(chunk)
 
-            video_metadata = {
-                "script_section": section.section,
-                "pexels_id": best_video["id"],
-                "author": best_video["author"],
-                "author_url": best_video["author_url"],
-                "video_url": best_video["video_url"],
-                "download_url": download_video["link"],
-                "file_path": str(video_path),
-                "dimensions": f"{download_video['width']}x{download_video['height']}",
-                "duration": best_video["duration"],
-                "search_query": search_query,
-                "attribution": f"Video by {best_video['author']} from Pexels",
-            }
-
-            results.append(video_metadata)
+            # 5. Create validated metadata
+            video_meta = VideoMetadata(
+                script_section=section.section,
+                pexels_id=best_video["id"],
+                file_path=str(video_path),
+                search_query=search_query,
+                author=best_video.get("author"),
+                author_url=str(best_video.get("author_url")),
+                video_url=str(best_video.get("video_url")),
+                dimensions=f"{download_video['width']}x{download_video['height']}",
+                duration=best_video.get("duration"),
+                quality=download_video.get("quality")
+            )
+            validated_videos.append(video_meta)
 
         except Exception as e:
-            print(f"Failed to download video for {search_query}: {str(e)}")
+            print(f"⚠️ Failed section '{section.section}': {str(e)}")
+            failed_sections.append({
+                "section": section.section,
+                "error": str(e),
+                "query": search_query
+            })
             continue
 
+    # Save metadata
     metadata_path = video_dir / "video_metadata.json"
     with open(metadata_path, "w") as f:
-        json.dump(results, f, indent=4)
-
+        json.dump([v.model_dump(mode='json') for v in validated_videos], f, indent=4)
     return {
-        "status": "success",
-        "downloaded_videos": len(results),
-        "total_sections": len(latest_script_obj.sections),
-        "video_directory": str(video_dir),
-        "metadata_file": str(metadata_path),
-        "videos": results,
+        "videos": validated_videos
     }
 
 
-
-
+async def generate_audio(state: State) -> dict:
+    """Generates TTS audio for the latest script without duplication"""
+    latest_script = state.scripts[-1]
+    script_title = sanitize_filename(latest_script.title)
+    audio_segments = []
+    
+    for section in latest_script.sections:
+        meta = generate_tts(
+            text=section.text,
+            video_name=script_title,
+            section=section.section,
+            voice="af_jessica"
+        )
+        if meta:  # Only append if generation succeeded
+            audio_segments.append(meta)
+    
+    return {
+        "audio_metadata": audio_segments
+    }
 
 # Step 6: Define the nodes and the workflow
 builder = StateGraph(State, input=InputState, config_schema=Configuration)
 
+# Add all nodes including the new audio generation
 builder.add_node('script_generator', script_generator)
 builder.add_node('request_feedback', request_feedback)
 builder.add_node('revise_script', revise_script)
 builder.add_node('route_feedback', route_feedback)
 builder.add_node('get_videos', get_videos)
+builder.add_node('generate_audio', generate_audio)  # New audio generation node
 
 # Define workflow structure
 builder.add_edge(START, "script_generator")
 builder.add_edge("script_generator", "request_feedback")
 
-# Conditional feedback routing
 builder.add_conditional_edges(
     'request_feedback',
     route_feedback,
     path_map={
-        'get_videos': 'get_videos',        # No feedback, proceed to get_videos
-        'revise_script': 'revise_script'   # Feedback provided, go to revise
+        'generate_audio': 'generate_audio',  # No feedback → generate audio first
+        'revise_script': 'revise_script'     # Feedback → revise script
     }
 )
 
-# Loop back for revision feedback
+# Connect the audio generation to video fetching
+builder.add_edge("generate_audio", "get_videos")  # Audio → Videos
+
+# Loop back for revisions
 builder.add_edge("revise_script", "request_feedback")
 
-# Final edge to end the workflow after video generation
+# Final edge after video generation
 builder.add_edge("get_videos", END)
+
 graph = builder.compile()

@@ -53,47 +53,19 @@ SCRIPT_GEN_PROMPT = """
     Content: Tie back to the tone of clarity and control—e.g., "Follow for more psychology that gives you leverage in real life."
     Style: Clean, clear, declarative. Speak to people who want to stop feeling lost and start feeling in control.
 
-    VISUAL & AUDIO GUIDELINES:
+    SEARCH RULES FOR PEXELS VIDEOS:
+    1. CHARACTERS: "person [action/state]" - e.g. "woman thinking", "man stressed", "people talking"
+    2. ENVIRONMENTS: "[setting] [simple modifier]" - e.g. "office night", "park rainy", "cafe busy"
+    3. SHOTS: Use 1-2 compositional terms - "close-up face", "hands working", "person window"
+    4. AVOID: Overly specific details (time, age, hyper-specific actions)
+    5. LIGHTING: Add one mood cue - "morning light", "low light", "natural light"
 
-    - **Characters**:
-      * Use relatable-looking people — avoid overly polished, posed, or commercial-style models.
-      * Prefer casual body language, simple facial expressions, and natural settings.
-      * Good search phrases: "man thinking alone", "woman walking in city", "couple talking", "person sitting at desk".
+    In a nutshell:
+    "Search Pexels with: 1) 'person [basic action]' 2) '[place] [simple modifier]' 3) Max 3 keywords 4) Avoid specifics 5) Add 'no talking' for clean audio"
 
-    - **Environments**:
-      * Choose settings that reflect everyday life — homes, streets, offices, cafes, transit.
-      * Stick to broad emotional cues: indoors for tension or isolation, outdoors for escape or movement.
-      * Search ideas: "empty room", "city street at night", "home office", "person by window".
-
-    - **Lighting & Color**:
-      * Choose clips with soft, natural light for serious or emotional moments.
-      * Avoid over-lit or high-contrast commercial lighting unless it fits the story.
-
-    - **Camera Motion**:
-      * Use mostly static or gently moving shots — slow pans, natural zooms, or still frames work best.
-      * Avoid dramatic or cinematic camera styles unless necessary.
-
-    - **Sound Effects**:
-      * Use simple, universal sounds — footsteps, ambient room noise, city sounds, faint phone pings.
-      * When unsure, leave space for silence or use soft ambient music to match mood.
-
-    - **Transitions**:
-      * Keep transitions minimal and story-driven — basic “cut”, “fade”, or “dissolve” is enough.
-      * Use timing and pacing to control mood instead of flashy edits.
-
-    NOTES:
-
-    - Always **name** the psychological principles (e.g., cognitive dissonance, gaslighting, intermittent reinforcement). Viewers need vocabulary to recognize what they’re living through.
-    - Encourage **multiple concepts** per scenario. Life isn’t siloed. Interlocking dynamics are where the real magic happens.
-    - Every detail in **visuals**, **dialogue**, and **sound** should reflect emotional truth and psychological weight.
-    - Target audience = people dealing with real pain: toxic relationships, manipulative bosses, family betrayal, self-doubt, burnout. Speak *to them*, not above them.
-    - We’re not in the business of hope—we sell **understanding**, **agency**, and **psychological leverage**.
-    - This is content for people living in **gray zones**—your job is to expose the hidden dynamics that control them.
-
-    FINAL REMINDER:
-    We are not content creators. We are battlefield psychologists turning insights into weapons of clarity.
-    The audience doesn’t just need to *watch*—they need to *feel seen* and *gain power* from every second.
-    We want to give detailed and thorough, reseaarch intensive real world examples of the workings of the psychological concepts. So make sure to write real world examples section more length and deatiled.
+    SOUD EFFECTS:
+    * Use simple, universal sounds — footsteps, ambient room noise, city sounds, faint phone pings.
+    * When unsure, leave space for silence or use soft ambient music to match mood.
 
     SCRIPT EXAMPLES TO CONVEY WHAT LEVEL OF SCRIPT CONTENT WE WANT:
 
@@ -152,6 +124,19 @@ SCRIPT_GEN_PROMPT = """
     CTA (5s):
     Follow for raw psychological tools to break free from high-functioning self-erasure and reclaim your value on your own terms.
 
+    NOTES:
+
+    - Always **name** the psychological principles (e.g., cognitive dissonance, gaslighting, intermittent reinforcement). Viewers need vocabulary to recognize what they’re living through.
+    - Encourage **multiple concepts** per scenario. Life isn’t siloed. Interlocking dynamics are where the real magic happens.
+    - Every detail in **visuals**, **dialogue**, and **sound** should reflect emotional truth and psychological weight.
+    - Target audience = people dealing with real pain: toxic relationships, manipulative bosses, family betrayal, self-doubt, burnout. Speak *to them*, not above them.
+    - We’re not in the business of hope—we sell **understanding**, **agency**, and **psychological leverage**.
+    - This is content for people living in **gray zones**—your job is to expose the hidden dynamics that control them.
+
+    FINAL REMINDER:
+    We are not content creators. We are battlefield psychologists turning insights into weapons of clarity.
+    The audience doesn’t just need to *watch*—they need to *feel seen* and *gain power* from every second.
+    We want to give detailed and thorough, reseaarch intensive real world examples of the workings of the psychological concepts. So make sure to write real world examples section more length and deatiled.
 
 """
 

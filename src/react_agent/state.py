@@ -1,6 +1,6 @@
 from __future__ import annotations
 from dataclasses import dataclass, field
-from typing import Sequence, List, Optional, Union, Literal, Any
+from typing import Sequence, List, Optional, Union, Literal, Any, Dict
 import operator
 import uuid
 
@@ -9,7 +9,7 @@ from langgraph.graph import add_messages
 from langgraph.managed import IsLastStep
 from typing_extensions import Annotated
 from langchain_core.documents import Document
-from react_agent.structures import VideoScript
+from react_agent.structures import VideoScript, VideoMetadata, AudioMetadata
 
 def add_queries(existing: Sequence[str], new: Sequence[str]) -> Sequence[str]:
     return list(existing) + list(new)
@@ -44,19 +44,19 @@ def reduce_docs(
 
 @dataclass
 class InputState:
-    """Base input state containing only messages."""
-    messages: Annotated[Sequence[AnyMessage], add_messages] = field(
-        default_factory=list
-    )
+    messages: Annotated[Sequence[AnyMessage], add_messages] = field(default_factory=list)
 
 @dataclass
 class RetrievalState:
-    """State for retrieval-related data."""
     queries: Sequence[str] = field(default_factory=list)
     final_response: str = field(default="")
 
 @dataclass
 class State(InputState, RetrievalState):
-    """Complete agent state combining all components."""
-    is_last_step: IsLastStep = field(default=False)
-    scripts: Annotated[Sequence[VideoScript], operator.add] = field(default_factory=list)
+    is_last_step: bool = field(default=False)
+    
+    scripts: List[VideoScript] = field(default_factory=list)
+    
+    videos: List[VideoMetadata] = field(default_factory=list)
+    
+    audio_metadata: AudioMetadata = field(default_factory=dict)

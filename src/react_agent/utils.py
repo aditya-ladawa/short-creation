@@ -211,6 +211,19 @@ def extract_video_data(pexels_response: Dict) -> List[Dict]:
     
     return formatted_videos
 
+
+def extract_video_name(url: str) -> str:
+    """
+    Extracts the descriptive name from a Pexels video URL.
+    Example: "https://www.pexels.com/video/a-man-made-pond-surrounded-by-rocks-and-plants-8195680/"
+             → "A Man Made Pond Surrounded By Rocks And Plants"
+    """
+    match = re.search(r'/video/([^/]+)-\d+/?$', url)
+    if match:
+        return match.group(1).replace('-', ' ').title()
+    return "Untitled"
+
+
 # def extract_video_data(videos_dict):
 #     results = []
 #     for video in videos_dict.get('data', {}).get('videos', []):

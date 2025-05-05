@@ -78,7 +78,9 @@ class RetrievalQueries(BaseModel):
         description="List of distinct search queries to retrieve psychological concepts, studies, and real-world applications. Each query should be specific enough to target relevant information but broad enough to capture diverse perspectives."
     )
 
-
+class PexelsVideoMatch(BaseModel):
+    video_id : str
+    video_name : str
 
 def ensure_path(path: str | Path) -> Path:
     """Ensure we always work with Path objects internally"""

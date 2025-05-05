@@ -7,7 +7,7 @@ from langgraph.graph import StateGraph
 from langgraph.prebuilt import ToolNode
 from react_agent.configuration import Configuration
 from react_agent.state import InputState, State
-from react_agent.utils import load_chat_model, videoscript_to_text, get_message_text, extract_video_data, sanitize_filename
+from react_agent.utils import load_chat_model, videoscript_to_text, get_message_text, extract_video_data, sanitize_filename, extract_video_name
 from react_agent.structures import *
 import json
 from langgraph.types import interrupt, Command
@@ -137,7 +137,7 @@ async def get_videos(state: State) -> dict:
             "orientation": "portrait",
             "size": "medium",
             "page": 1,
-            "per_page": 1,
+            "per_page": 10,
         }
 
         try:
@@ -151,10 +151,45 @@ async def get_videos(state: State) -> dict:
             if not videos_data:
                 raise ValueError("No videos returned from Pexels")
 
-            best_video = videos_data[0]
-            target_aspect = 9 / 16
+            video_dict = {
+                str(video['id']): extract_video_name(video['video_url'])
+                for video in videos_data
+            }
+            video_entries = "\n".join([f"{k}: {v}" for k, v in video_dict.items()])
 
-            # 3. Select best quality video
+            system_prompt = f"""You are an expert video assistant.
+
+                Given the script section:
+                \"\"\"{section.text}\"\"\"
+
+                And the search query used:
+                \"{search_query}\"
+
+                Here are some matching videos received from Pexels API in the format 'id':'video_name'.
+                {video_entries}
+
+                Choose the MOST relevant video for this section. Respond ONLY with the best matching video ID and video name."""
+
+            best_matching_video_template = ChatPromptTemplate(
+                messages=[
+                    ('system', system_prompt),
+                ]
+            )
+
+            get_best_matching_video = best_matching_video_template | model.with_structured_output(PexelsVideoMatch)
+
+            # 3. Get best match from LLM
+            result: PexelsVideoMatch = await get_best_matching_video.ainvoke({})
+            best_video_id = result.video_id
+            best_video_name = result.video_name
+            print(f'\n||::|| Search query: {search_query}\n✅ Best matching video: {best_video_id} - {best_video_name}\n')
+
+            # 4. Locate matching video from original data
+            best_video = next((v for v in videos_data if str(v["id"]) == best_video_id), None)
+            if not best_video:
+                raise ValueError(f"LLM selected invalid video ID: {best_video_id}")
+
+            target_aspect = 9 / 16
             sd_videos = [
                 v for v in best_video["video_files"]
                 if v["quality"] == "sd" and v["width"] / v["height"] <= target_aspect
@@ -168,7 +203,7 @@ async def get_videos(state: State) -> dict:
                 key=lambda v: abs((v["width"] / v["height"]) - target_aspect)
             )
 
-            # 4. Download video
+            # 5. Download video
             filename = sanitize_filename(f"{section.section}") + ".mp4"
             video_path = video_dir / "visuals" / filename
             video_path.parent.mkdir(parents=True, exist_ok=True)
@@ -180,7 +215,7 @@ async def get_videos(state: State) -> dict:
                 for chunk in response.iter_content(chunk_size=8192):
                     f.write(chunk)
 
-            # 5. Create validated metadata
+            # 6. Create validated metadata
             video_meta = VideoMetadata(
                 script_section=section.section,
                 pexels_id=best_video["id"],
@@ -205,9 +240,10 @@ async def get_videos(state: State) -> dict:
             continue
 
     # Save metadata
-    metadata_path = video_dir / "video_metadata.json"
+    metadata_path = video_dir / 'visuals' / "video_metadata.json"
     with open(metadata_path, "w") as f:
         json.dump([v.model_dump(mode='json') for v in validated_videos], f, indent=4)
+
     return {
         "videos": validated_videos
     }

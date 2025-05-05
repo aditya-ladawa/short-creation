@@ -17,7 +17,7 @@ def generate_tts(
     text: str,
     video_name: str,
     section: str,
-    voice: str = "af_bella",
+    voice: str = "af_jessica",
     base_path: Path = BASE_PATH,
 ) -> Optional[AudioMetadata]:
     """Generates TTS audio with proper error handling"""

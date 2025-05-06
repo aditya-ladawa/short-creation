@@ -82,6 +82,14 @@ class PexelsVideoMatch(BaseModel):
     video_id : str
     video_name : str
 
+class PexelsVideoMultiMatch(BaseModel):
+    matches: List[Dict[str, str]] = Field(
+        ...,
+        min_items=1,
+        max_items=3,
+        description="List of matched videos with IDs and names (1-3 items required)"
+    )
+
 def ensure_path(path: str | Path) -> Path:
     """Ensure we always work with Path objects internally"""
     return path if isinstance(path, Path) else Path(path)
@@ -184,6 +192,8 @@ class VideoMetadata(BaseModel):
         if v and not v.startswith(('http://', 'https://')):
             raise ValueError("Invalid URL format")
         return v
+
+
 
 class AudioMetadata(BaseModel):
     """Metadata for generated TTS audio segments"""

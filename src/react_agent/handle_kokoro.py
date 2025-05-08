@@ -17,14 +17,16 @@ def generate_tts(
     text: str,
     video_name: str,
     section: str,
-    voice: str = "af_jessica",
+    voice: str = "af_heart",
     base_path: Path = BASE_PATH,
 ) -> Optional[AudioMetadata]:
     """Generates TTS audio with proper error handling"""
     try:
+        
         audio_dir = base_path / "videos" / video_name / "audio"
         audio_dir.mkdir(parents=True, exist_ok=True)
-        file_path = audio_dir / f"{section}.wav"
+        file_path = audio_dir / f"{section.replace(" ", '_')}.wav"
+        print(file_path)
 
         phonemes, _ = g2p(text)
         samples, sample_rate = kokoro.create(phonemes, voice, is_phonemes=True)

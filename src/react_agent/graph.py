@@ -21,6 +21,7 @@ import json
 import re
 from react_agent.pexels_handler import pexels
 from react_agent.handle_kokoro import generate_tts
+import asyncio
 
 ## Load the chat model
 model = ChatDeepSeek(model='deepseek-chat', temperature=0.6)
@@ -122,8 +123,15 @@ async def get_videos(state: State) -> dict:
     failed_sections = []
 
     for section in latest_script_obj.sections:
+        section_dir = visuals_dir / sanitize_filename(f"section_{section.section}")
+        section_dir.mkdir(parents=True, exist_ok=True)
+        
         search_query = section.visual.scene
-        for _ in range(2):  # Retry up to 2 times (original + generalization)
+        max_retries = 5  # Maximum retries for each section
+        retry_count = 0
+        success = False
+        
+        while retry_count < max_retries and not success:
             try:
                 search_params = {
                     "query": search_query,
@@ -152,16 +160,16 @@ async def get_videos(state: State) -> dict:
                 # 3. LLM Prompt for multiple matches
                 system_prompt = f"""You are an expert video assistant.
 
-Given the script section:
-{section.text}
+                        Given the script section:
+                        {section.text}
 
-And the search query used:
-{search_query}
+                        And the search query used:
+                        {search_query}
 
-Here are some matching videos received from Pexels API in the format 'id':'video_name'.
-{video_entries}
+                        Here are some matching videos received from Pexels API in the format 'id':'video_name'.
+                        {video_entries}
 
-Choose 3-6 MOST relevant videos for this section. Respond with a list of matches where each item contains \"video_id\" and \"video_name\"."""
+                        Choose 3-6 MOST relevant videos for this section. Respond with a list of matches where each item contains \"video_id\" and \"video_name\"."""
 
                 prompt = ChatPromptTemplate.from_messages([
                     ("system", system_prompt),
@@ -177,65 +185,100 @@ Choose 3-6 MOST relevant videos for this section. Respond with a list of matches
                 print(f"\n||::|| Search query: {search_query}")
                 print(f"✅ Selected matches: {[m for m in result.matches]}")
 
-                # 4. Loop through each match and download
+                # 4. Loop through each match and download with retries
                 for match in result.matches:
                     video_id = match["video_id"]
                     video_name = match["video_name"]
+                    video_success = False
+                    video_retries = 0
+                    max_video_retries = 3
 
-                    matching_video = next((v for v in videos_data if str(v["id"]) == video_id), None)
-                    if not matching_video:
-                        print(f"⚠️ Skipped invalid video ID from LLM: {video_id}")
-                        continue
+                    while not video_success and video_retries < max_video_retries:
+                        try:
+                            matching_video = next((v for v in videos_data if str(v["id"]) == video_id), None)
+                            if not matching_video:
+                                print(f"⚠️ Skipped invalid video ID from LLM: {video_id}")
+                                break
 
-                    target_aspect = 9 / 16
-                    sd_videos = [
-                        v for v in matching_video.get("video_files", [])
-                        if v["quality"] == "sd" and v["width"] / v["height"] <= target_aspect
-                    ] or [
-                        v for v in matching_video.get("video_files", []) if v["quality"] == "sd"
-                    ]
+                            target_aspect = 9 / 16
+                            sd_videos = [
+                                v for v in matching_video.get("video_files", [])
+                                if v["quality"] == "hd" and v["width"] / v["height"] <= target_aspect
+                            ] or [
+                                v for v in matching_video.get("video_files", []) if v["quality"] == "hd"
+                            ]
 
-                    if not sd_videos:
-                        print(f"⚠️ No suitable SD format for video {video_id}")
-                        continue
+                            if not sd_videos:
+                                print(f"⚠️ No suitable HD format for video {video_id}")
+                                break
 
-                    download_video = min(sd_videos, key=lambda v: abs((v["width"] / v["height"]) - target_aspect))
-                    filename = sanitize_filename(f"{section.section}_{video_id}") + '.mp4'
-                    video_path = visuals_dir / filename
+                            download_video = min(sd_videos, key=lambda v: abs((v["width"] / v["height"]) - target_aspect))
+                            filename = sanitize_filename(f"{section.section}_{video_id}") + '.mp4'
+                            video_path = section_dir / filename
 
-                    response = requests.get(download_video["link"], stream=True)
-                    response.raise_for_status()
-                    with open(video_path, "wb") as f:
-                        for chunk in response.iter_content(chunk_size=8192):
-                            f.write(chunk)
+                            response = requests.get(download_video["link"], stream=True)
+                            response.raise_for_status()
+                            
+                            # Create temp file first to ensure complete download
+                            temp_path = video_path.with_suffix('.tmp')
+                            with open(temp_path, "wb") as f:
+                                for chunk in response.iter_content(chunk_size=8192):
+                                    f.write(chunk)
+                            
+                            # Rename temp file to final name after successful download
+                            temp_path.rename(video_path)
 
-                    video_meta = VideoMetadata(
-                        script_section=section.section,
-                        pexels_id=matching_video["id"],
-                        file_path=str(video_path),
-                        search_query=search_query,
-                        author=matching_video.get("author"),
-                        author_url=str(matching_video.get("author_url")),
-                        video_url=str(matching_video.get("video_url")),
-                        dimensions=f"{download_video['width']}x{download_video['height']}",
-                        duration=matching_video.get("duration"),
-                        quality=download_video.get("quality")
-                    )
-                    validated_videos.append(video_meta)
-                break  # Successful
+                            video_meta = VideoMetadata(
+                                script_section=section.section,
+                                pexels_id=matching_video["id"],
+                                file_path=str(video_path),
+                                search_query=search_query,
+                                author=matching_video.get("author"),
+                                author_url=str(matching_video.get("author_url")),
+                                video_url=str(matching_video.get("video_url")),
+                                dimensions=f"{download_video['width']}x{download_video['height']}",
+                                duration=matching_video.get("duration"),
+                                quality=download_video.get("quality")
+                            )
+                            validated_videos.append(video_meta)
+                            video_success = True
+                            
+                        except Exception as e:
+                            video_retries += 1
+                            print(f"⚠️ Failed to download video {video_id} (attempt {video_retries}/{max_video_retries}): {str(e)}")
+                            if video_retries >= max_video_retries:
+                                print(f"❌ Max retries reached for video {video_id}")
+                                failed_sections.append({
+                                    "section": section.section,
+                                    "error": f"Failed to download video {video_id}: {str(e)}",
+                                    "query": search_query,
+                                    "video_id": video_id
+                                })
+                            else:
+                                await asyncio.sleep(2 ** video_retries)  # Exponential backoff
+
+                # If we got at least one video for this section, consider it a success
+                if any(v.script_section == section.section for v in validated_videos):
+                    success = True
+                else:
+                    raise ValueError("No videos were successfully downloaded for this section")
 
             except Exception as e:
-                print(f"⚠️ Failed search with query '{search_query}': {str(e)}")
-                if "No videos returned from Pexels" in str(e):
-                    print("🔁 Asking model to generalize the query...")
-                    search_query = await model.ainvoke(f"Suggest a more general search query for: '{search_query}'")
-                    continue
-                failed_sections.append({
-                    "section": section.section,
-                    "error": str(e),
-                    "query": search_query
-                })
-                break
+                retry_count += 1
+                print(f"⚠️ Failed search with query '{search_query}' (attempt {retry_count}/{max_retries}): {str(e)}")
+                
+                if retry_count >= max_retries:
+                    print(f"❌ Max retries reached for section {section.section}")
+                    failed_sections.append({
+                        "section": section.section,
+                        "error": str(e),
+                        "query": search_query
+                    })
+                else:
+                    if "No videos returned from Pexels" in str(e):
+                        print("🔁 Asking model to generalize the query...")
+                        search_query = await model.ainvoke(f"Suggest a more general search query for: '{search_query}'")
+                    await asyncio.sleep(2 ** retry_count)  # Exponential backoff
 
     # Save metadata
     metadata_path = visuals_dir / "video_metadata.json"
@@ -246,8 +289,6 @@ Choose 3-6 MOST relevant videos for this section. Respond with a list of matches
         "videos": validated_videos,
         "failed_sections": failed_sections
     }
-
-
 
 async def generate_audio(state: State) -> dict:
     """Generates TTS audio for the latest script without duplication"""
@@ -286,9 +327,9 @@ builder = StateGraph(State, input=InputState, config_schema=Configuration)
 
 # Add all nodes including the new audio generation
 builder.add_node('script_generator', script_generator)
-builder.add_node('request_feedback', request_feedback)
-builder.add_node('revise_script', revise_script)
-builder.add_node('route_feedback', route_feedback)
+# builder.add_node('request_feedback', request_feedback)
+# builder.add_node('revise_script', revise_script)
+# builder.add_node('route_feedback', route_feedback)
 builder.add_node('get_videos', get_videos)
 builder.add_node('generate_audio', generate_audio)  # New audio generation node
 
@@ -296,22 +337,24 @@ builder.add_node('generate_audio', generate_audio)  # New audio generation node
 
 # Define workflow structure
 builder.add_edge(START, "script_generator")
-builder.add_edge("script_generator", "request_feedback")
+# builder.add_edge("script_generator", "request_feedback")
+builder.add_edge("script_generator", "generate_audio")
 
-builder.add_conditional_edges(
-    'request_feedback',
-    route_feedback,
-    path_map={
-        'generate_audio': 'generate_audio',  # No feedback → generate audio first
-        'revise_script': 'revise_script'     # Feedback → revise script
-    }
-)
+
+# builder.add_conditional_edges(
+#     'request_feedback',
+#     route_feedback,
+#     path_map={
+#         'generate_audio': 'generate_audio',  # No feedback → generate audio first
+#         'revise_script': 'revise_script'     # Feedback → revise script
+#     }
+# )
 
 # Connect the audio generation to video fetching
 builder.add_edge("generate_audio", "get_videos")  # Audio → Videos
 
-# Loop back for revisions
-builder.add_edge("revise_script", "request_feedback")
+# # Loop back for revisions
+# builder.add_edge("revise_script", "request_feedback")
 
 # Final edge after video generation
 builder.add_edge("get_videos", END)

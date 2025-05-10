@@ -17,10 +17,12 @@ def generate_tts(
     text: str,
     video_name: str,
     section: str,
-    voice: str = "af_heart",
-    base_path: Path = BASE_PATH,
-) -> Optional[AudioMetadata]:
+    voice: str = "af_jessica",
+    base_path: Path = BASE_PATH) -> Optional[AudioMetadata]:
     """Generates TTS audio with proper error handling"""
+
+
+
     try:
         
         audio_dir = base_path / "videos" / video_name / "audio"
@@ -41,6 +43,7 @@ def generate_tts(
             sample_rate=sample_rate,
             file_path=str(file_path.absolute())
         )
+    
     except Exception as e:
         print(f"❌ TTS Generation Failed for {section}: {str(e)}")
-        return None
+    return None

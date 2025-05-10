@@ -85,9 +85,9 @@ class PexelsVideoMatch(BaseModel):
 class PexelsVideoMultiMatch(BaseModel):
     matches: List[Dict[str, str]] = Field(
         ...,
-        min_items=1,
-        max_items=3,
-        description="List of matched videos with IDs and names (1-3 items required)"
+        min_items=3,
+        max_items=5,
+        description="List of matched videos with IDs and names (3-5 items required)"
     )
 
 def ensure_path(path: str | Path) -> Path:

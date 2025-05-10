@@ -176,3 +176,5 @@ my_test_files/
 ctc-forced-aligner/
 
 kokoro_files/
+
+output_reels_fades_ordered_v3/

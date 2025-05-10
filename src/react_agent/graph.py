@@ -22,7 +22,7 @@ import re
 from react_agent.pexels_handler import pexels
 from react_agent.handle_kokoro import generate_tts
 import asyncio
-
+import os
 ## Load the chat model
 model = ChatDeepSeek(model='deepseek-chat', temperature=0.6)
 
@@ -302,7 +302,7 @@ async def generate_audio(state: State) -> dict:
             text=section.text,
             video_name=script_title,
             section=section.section,
-            voice="af_jessica"
+            voice="af_heart"
         )
         if meta:  # Only append if generation succeeded
             audio_segments.append(meta)
@@ -322,6 +322,121 @@ async def route_feedback(state: State):
         return 'revise_script'
 
 
+from react_agent.video_editor import BASE_VIDEOS_PATH, OUTPUT_DIR_BASE, SECTION_ORDER, get_duration, apply_segment_effects, create_reel_for_audio, concatenate_sections
+from pydantic import BaseModel
+
+async def media_editor(state: State) -> EditMediaResult:
+    latest_script_obj = state.scripts[-1]
+    safe_title = sanitize_filename(latest_script_obj.title)
+
+    script_path = os.path.join(BASE_VIDEOS_PATH, safe_title)
+    script_audio_path = os.path.join(script_path, 'audio')
+    script_video_path = os.path.join(script_path, 'visuals')
+    output_script_root = os.path.join(OUTPUT_DIR_BASE, safe_title)
+    os.makedirs(output_script_root, exist_ok=True)
+
+    warnings = []
+    section_output_map = {}
+
+    if not os.path.isdir(script_audio_path):
+        warning = f"Audio directory not found for script {safe_title}: {script_audio_path}"
+        print(warning)
+        return EditMediaResult(
+            script_title=safe_title,
+            output_dir=output_script_root,
+            final_reel_path=None,
+            sections_created=[],
+            warnings=[warning]
+        )
+
+    print(f"\nProcessing Script folder: {safe_title}")
+    available_audio_files = sorted([
+        f for f in os.listdir(script_audio_path)
+        if f.lower().endswith(('.wav', '.mp3', '.m4a', '.aac'))
+    ])
+
+    if not available_audio_files:
+        warning = f"No audio files found in {script_audio_path} for script {safe_title}."
+        print(warning)
+        return EditMediaResult(
+            script_title=safe_title,
+            output_dir=output_script_root,
+            final_reel_path=None,
+            sections_created=[],
+            warnings=[warning]
+        )
+
+    sections_created = []
+
+    for audio_file in available_audio_files:
+        section_name = os.path.splitext(audio_file)[0]
+        section_key = section_name.upper()
+
+        vids_for_section = []
+        section_visuals_folder = os.path.join(script_video_path, f'section_{section_name}')
+        potential_visual_sources = []
+
+        if os.path.isdir(section_visuals_folder):
+            potential_visual_sources.append(section_visuals_folder)
+        if os.path.isdir(script_video_path):
+            potential_visual_sources.append(script_video_path)
+
+        for source_dir in potential_visual_sources:
+            vids_for_section.extend([
+                os.path.join(source_dir, f)
+                for f in os.listdir(source_dir)
+                if f.lower().endswith(('.mp4', '.mov', '.avi', '.mkv', '.webm'))
+            ])
+        
+        vids_for_section = sorted(list(set(vids_for_section)))
+
+        audio_path = os.path.join(script_audio_path, audio_file)
+        safe_section_name = "".join(c if c.isalnum() or c in ('_', '-') else '_' for c in section_name)
+        output_path = os.path.join(output_script_root, f'reel_{safe_section_name}.mp4')
+
+        result_path = create_reel_for_audio(audio_path, vids_for_section, output_path)
+        if result_path:
+            duration = get_duration(result_path)
+            section_output_map[section_key] = result_path
+            sections_created.append(SectionOutput(
+                section_key=section_key,
+                path=result_path,
+                duration=duration
+            ))
+
+    # Concatenate sections in order
+    ordered_paths = []
+    print(f"\nPreparing final reel for script '{safe_title}' based on order: {SECTION_ORDER}")
+    for key in SECTION_ORDER:
+        if key in section_output_map:
+            ordered_paths.append(section_output_map[key])
+            print(f"  + Added section '{key}'")
+        else:
+            msg = f"  - Warning: Section '{key}' missing for script '{safe_title}'"
+            print(msg)
+            warnings.append(msg)
+
+    final_reel_path = None
+    if ordered_paths:
+        final_name = "".join(c if c.isalnum() or c in ('_', '-') else '_' for c in safe_title)
+        final_reel_path = os.path.join(output_script_root, f"{final_name}_final_ordered_reel.mp4")
+        concatenate_sections(ordered_paths, final_reel_path)
+    else:
+        warning = f"No valid sections found for concatenation in script '{safe_title}'"
+        print(warning)
+        warnings.append(warning)
+
+    result = EditMediaResult(
+        script_title=safe_title,
+        output_dir=output_script_root,
+        final_reel_path=final_reel_path,
+        sections_created=sections_created,
+        warnings=warnings
+    )
+    print("EditMediaResult:", result.model_dump())
+    return result
+
+
 # Step 6: Define the nodes and the workflow
 builder = StateGraph(State, input=InputState, config_schema=Configuration)
 
@@ -332,6 +447,7 @@ builder.add_node('script_generator', script_generator)
 # builder.add_node('route_feedback', route_feedback)
 builder.add_node('get_videos', get_videos)
 builder.add_node('generate_audio', generate_audio)  # New audio generation node
+builder.add_node('media_editor', media_editor)
 
 
 
@@ -357,6 +473,8 @@ builder.add_edge("generate_audio", "get_videos")  # Audio → Videos
 # builder.add_edge("revise_script", "request_feedback")
 
 # Final edge after video generation
-builder.add_edge("get_videos", END)
+builder.add_edge("get_videos", 'media_editor')
+builder.add_edge('media_editor', '__end__')
+
 
 graph = builder.compile()

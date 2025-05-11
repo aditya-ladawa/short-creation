@@ -302,7 +302,7 @@ async def generate_audio(state: State) -> dict:
             text=section.text,
             video_name=script_title,
             section=section.section,
-            voice="af_heart"
+            voice="af_bella"
         )
         if meta:  # Only append if generation succeeded
             audio_segments.append(meta)
@@ -324,6 +324,7 @@ async def route_feedback(state: State):
 
 from react_agent.video_editor import BASE_VIDEOS_PATH, OUTPUT_DIR_BASE, SECTION_ORDER, get_duration, apply_segment_effects, create_reel_for_audio, concatenate_sections
 from pydantic import BaseModel
+from fastapi.responses import JSONResponse
 
 async def media_editor(state: State) -> EditMediaResult:
     latest_script_obj = state.scripts[-1]
@@ -333,10 +334,12 @@ async def media_editor(state: State) -> EditMediaResult:
     script_audio_path = os.path.join(script_path, 'audio')
     script_video_path = os.path.join(script_path, 'visuals')
     output_script_root = os.path.join(OUTPUT_DIR_BASE, safe_title)
+
     os.makedirs(output_script_root, exist_ok=True)
 
     warnings = []
-    section_output_map = {}
+    sections_created = []
+    section_tasks = []
 
     if not os.path.isdir(script_audio_path):
         warning = f"Audio directory not found for script {safe_title}: {script_audio_path}"
@@ -366,20 +369,19 @@ async def media_editor(state: State) -> EditMediaResult:
             warnings=[warning]
         )
 
-    sections_created = []
+    intermediate_output_dir = os.path.join(output_script_root, "intermediate_sections")
+    os.makedirs(intermediate_output_dir, exist_ok=True)
+
+    section_task_map = {}
 
     for audio_file in available_audio_files:
         section_name = os.path.splitext(audio_file)[0]
         section_key = section_name.upper()
+        audio_path = os.path.join(script_audio_path, audio_file)
 
         vids_for_section = []
         section_visuals_folder = os.path.join(script_video_path, f'section_{section_name}')
-        potential_visual_sources = []
-
-        if os.path.isdir(section_visuals_folder):
-            potential_visual_sources.append(section_visuals_folder)
-        if os.path.isdir(script_video_path):
-            potential_visual_sources.append(script_video_path)
+        potential_visual_sources = [d for d in [section_visuals_folder, script_video_path] if os.path.isdir(d)]
 
         for source_dir in potential_visual_sources:
             vids_for_section.extend([
@@ -387,32 +389,59 @@ async def media_editor(state: State) -> EditMediaResult:
                 for f in os.listdir(source_dir)
                 if f.lower().endswith(('.mp4', '.mov', '.avi', '.mkv', '.webm'))
             ])
-        
+
         vids_for_section = sorted(list(set(vids_for_section)))
 
-        audio_path = os.path.join(script_audio_path, audio_file)
+        if not vids_for_section:
+            warning = f"No visual files found for section {section_key} in expected folders."
+            print(warning)
+            warnings.append(warning)
+            section_task_map[section_key] = None
+            continue
+
         safe_section_name = "".join(c if c.isalnum() or c in ('_', '-') else '_' for c in section_name)
-        output_path = os.path.join(output_script_root, f'reel_{safe_section_name}.mp4')
+        output_path = os.path.join(intermediate_output_dir, f'reel_{safe_section_name}.mp4')
 
-        result_path = create_reel_for_audio(audio_path, vids_for_section, output_path)
-        if result_path:
-            duration = get_duration(result_path)
-            section_output_map[section_key] = result_path
-            sections_created.append(SectionOutput(
-                section_key=section_key,
-                path=result_path,
-                duration=duration
-            ))
+        task = asyncio.create_task(create_reel_for_audio(audio_path, vids_for_section, output_path))
+        section_task_map[section_key] = task
 
-    # Concatenate sections in order
+    # Await all tasks
+    processed_section_files_map = {}
+    for section_key, task in section_task_map.items():
+        if task is None:
+            processed_section_files_map[section_key] = None
+            continue
+        try:
+            result_path = await task
+            if result_path:
+                duration = await get_duration(result_path)
+                processed_section_files_map[section_key] = result_path
+                sections_created.append(SectionOutput(
+                    section_key=section_key,
+                    path=result_path,
+                    duration=duration
+                ))
+                print(f"Section {section_key} processed: {result_path}")
+            else:
+                warning = f"Section {section_key} failed to render a valid reel."
+                warnings.append(warning)
+                print(warning)
+                processed_section_files_map[section_key] = None
+        except Exception as e:
+            warning = f"Exception in processing section {section_key}: {e}"
+            print(warning)
+            warnings.append(warning)
+            processed_section_files_map[section_key] = None
+
+    # Final Concatenation
     ordered_paths = []
     print(f"\nPreparing final reel for script '{safe_title}' based on order: {SECTION_ORDER}")
     for key in SECTION_ORDER:
-        if key in section_output_map:
-            ordered_paths.append(section_output_map[key])
+        if key in processed_section_files_map and processed_section_files_map[key]:
+            ordered_paths.append(processed_section_files_map[key])
             print(f"  + Added section '{key}'")
         else:
-            msg = f"  - Warning: Section '{key}' missing for script '{safe_title}'"
+            msg = f"  - Warning: Section '{key}' missing or failed"
             print(msg)
             warnings.append(msg)
 
@@ -420,7 +449,7 @@ async def media_editor(state: State) -> EditMediaResult:
     if ordered_paths:
         final_name = "".join(c if c.isalnum() or c in ('_', '-') else '_' for c in safe_title)
         final_reel_path = os.path.join(output_script_root, f"{final_name}_final_ordered_reel.mp4")
-        concatenate_sections(ordered_paths, final_reel_path)
+        await concatenate_sections(ordered_paths, final_reel_path)
     else:
         warning = f"No valid sections found for concatenation in script '{safe_title}'"
         print(warning)
@@ -433,8 +462,9 @@ async def media_editor(state: State) -> EditMediaResult:
         sections_created=sections_created,
         warnings=warnings
     )
-    print("EditMediaResult:", result.model_dump())
-    return result
+    return {
+        "media_result": result
+    }
 
 
 # Step 6: Define the nodes and the workflow

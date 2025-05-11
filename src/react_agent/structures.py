@@ -207,14 +207,14 @@ class AudioMetadata(BaseModel):
 
 
 class SectionOutput(BaseModel):
-    section_key: str = Field(..., description="Uppercase key for the section, e.g., 'HOOK', 'CTA'")
-    path: str = Field(..., description="Path to the generated video file for this section")
-    duration: Optional[float] = Field(None, description="Duration of the section reel in seconds")
-
+    section_key: str
+    path: str
+    duration: Optional[float]
 
 class EditMediaResult(BaseModel):
-    script_title: str = Field(..., description="Sanitized title of the script")
-    output_dir: str = Field(..., description="Directory where output files are stored")
-    final_reel_path: Optional[str] = Field(None, description="Path to the final concatenated reel if available")
-    sections_created: List[SectionOutput] = Field(default_factory=list, description="List of successfully created section reels")
-    warnings: List[str] = Field(default_factory=list, description="Any warnings generated during processing")
+    script_title: str
+    output_dir: str
+    final_reel_path: Optional[str]
+    sections_created: List[SectionOutput]
+    warnings: List[str]
+

@@ -1,14 +1,18 @@
-"""Utility & helper functions."""
+import os
+import re
+import json
+from pathlib import Path
+from typing import List, Dict
+from typing_extensions import Optional
+
+from dotenv import load_dotenv
 
 from langchain.chat_models import init_chat_model
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import BaseMessage
 from langchain_core.documents import Document
-from typing_extensions import Optional, List, Dict
-import re
-import json
-from dotenv import load_dotenv
-import os
+
+from .structures import VideoScript, VideoSection, Visual, SectionSound, GlobalSound
 
 load_dotenv()
 
@@ -36,62 +40,6 @@ def load_chat_model(fully_specified_name: str) -> BaseChatModel:
     provider, model = fully_specified_name.split("/", maxsplit=1)
     return init_chat_model(model, model_provider=provider)
 
-def _format_doc(doc: Document) -> str:
-    """Format a single document as XML.
-
-    Args:
-        doc (Document): The document to format.
-
-    Returns:
-        str: The formatted document as an XML string.
-    """
-    metadata = doc.metadata or {}
-    meta = "".join(f" {k}={v!r}" for k, v in metadata.items())
-    if meta:
-        meta = f" {meta}"
-
-    return f"<document{meta}>\n{doc.page_content}\n</document>"
-
-
-def format_docs(docs: Optional[list[Document]]) -> str:
-    """Format a list of documents as XML.
-
-    This function takes a list of Document objects and formats them into a single XML string.
-
-    Args:
-        docs (Optional[list[Document]]): A list of Document objects to format, or None.
-
-    Returns:
-        str: A string containing the formatted documents in XML format.
-
-    Examples:
-        >>> docs = [Document(page_content="Hello"), Document(page_content="World")]
-        >>> print(format_docs(docs))
-        <documents>
-        <document>
-        Hello
-        </document>
-        <document>
-        World
-        </document>
-        </documents>
-
-        >>> print(format_docs(None))
-        <documents></documents>
-    """
-    if not docs:
-        return "<documents></documents>"
-    formatted = "\n".join(_format_doc(doc) for doc in docs)
-    return f"""<documents>
-{formatted}
-</documents>"""
-
-
-
-from typing import List
-from .structures import VideoScript, VideoSection, Visual, SectionSound, GlobalSound
-
-from pathlib import Path
 
 def videoscript_to_text(script_obj: VideoScript, safe_title: str) -> tuple[str, str]:
     """

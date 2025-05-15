@@ -1,10 +1,10 @@
-from typing import List, Optional, Dict, Literal
-from pydantic import BaseModel, Field
-from pydantic import HttpUrl, Field
-from pydantic import BaseModel, Field, HttpUrl, field_validator
-from pathlib import Path
-from datetime import datetime
 import re
+from datetime import datetime
+from pathlib import Path
+from typing import List, Optional, Dict, Literal
+
+from pydantic import BaseModel, Field, HttpUrl, field_validator
+
 
 class GlobalSound(BaseModel):
     """Background music that plays throughout the entire video"""
@@ -54,7 +54,7 @@ class VideoSection(BaseModel):
 
 class VideoScript(BaseModel):
     title: str = Field(..., description="Attention-grabbing title")
-    length: str = Field(..., description="Duration (90-120 seconds)")
+    length: str = Field(..., description="Duration in seconds")
     background_music: GlobalSound = Field(..., description="Continuous soundtrack")
     sections: List[VideoSection] = Field(..., description="Script sections in order")
 

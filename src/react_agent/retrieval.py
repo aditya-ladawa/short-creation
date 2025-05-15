@@ -1,17 +1,22 @@
-from typing import List, Dict, Tuple
-import pandas as pd
-import numpy as np
-from pydantic import BaseModel, Field, PrivateAttr
-from langchain_core.documents import Document
-from langchain_core.retrievers import BaseRetriever
-from langchain_qdrant import QdrantVectorStore, FastEmbedSparse
-from FlagEmbedding import FlagReranker
-from langchain_google_genai import GoogleGenerativeAIEmbeddings
-from qdrant_client import QdrantClient
+import json
 import os
+
+from typing import List, Dict, Tuple
+
+import numpy as np
+import pandas as pd
 import torch
 from dotenv import load_dotenv
-import json
+from pydantic import BaseModel, Field, PrivateAttr
+
+from langchain_core.documents import Document
+from langchain_core.retrievers import BaseRetriever
+
+from langchain_qdrant import QdrantVectorStore, FastEmbedSparse
+from langchain_google_genai import GoogleGenerativeAIEmbeddings
+from qdrant_client import QdrantClient
+from FlagEmbedding import FlagReranker
+
 load_dotenv()
 
 # class HybridRerankerRetriever(BaseRetriever, BaseModel):

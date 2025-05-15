@@ -1,14 +1,21 @@
+import os
 import json
-import cv2
-import numpy as np
-from typing import List, Dict, Tuple
-from faster_whisper import WhisperModel
-from moviepy import TextClip, CompositeVideoClip, ColorClip, VideoFileClip, ImageClip
-from PIL import Image, ImageDraw
 from pathlib import Path
+from typing import List, Dict, Tuple
+
+import cv2
 import ffmpeg
-import os 
+import numpy as np
 from dotenv import load_dotenv
+from PIL import Image, ImageDraw
+from faster_whisper import WhisperModel
+from moviepy import (
+    TextClip,
+    CompositeVideoClip,
+    ColorClip,
+    VideoFileClip,
+    ImageClip,
+)
 
 load_dotenv()
 

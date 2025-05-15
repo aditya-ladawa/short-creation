@@ -1,17 +1,23 @@
-from typing import Optional
-import soundfile as sf
-from misaki import en, espeak
-from kokoro_onnx import Kokoro
+import os
 from pathlib import Path
+from typing import Optional
+
+import soundfile as sf
+from dotenv import load_dotenv
+from kokoro_onnx import Kokoro
+from misaki import en, espeak
 from react_agent.structures import AudioMetadata
+
+load_dotenv()
+
 
 fallback = espeak.EspeakFallback(british=False)
 g2p = en.G2P(trf=False, british=False, fallback=fallback)
 kokoro = Kokoro(
-    "/home/aditya-ladawa/Aditya/z_projects/short_creation/kokoro_files/kokoro.onnx", 
-    "/home/aditya-ladawa/Aditya/z_projects/short_creation/kokoro_files/voices-v1.0.bin"
+    os.environ.get('KOKORO_MODEL_PATH'), 
+    os.environ.get('KOKORO_VOICES_PATH')
 )
-BASE_PATH = Path("/home/aditya-ladawa/Aditya/z_projects/short_creation/my_test_files")
+BASE_PATH = Path(os.environ.get('BASE_PATH'))
 
 def generate_tts(
     text: str,

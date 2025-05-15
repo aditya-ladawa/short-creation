@@ -1,15 +1,24 @@
 from __future__ import annotations
-from dataclasses import dataclass, field
-from typing import Sequence, List, Optional, Union, Literal, Any, Dict
+
 import operator
 import uuid
+from dataclasses import dataclass, field
+from typing import Sequence, List, Optional, Union, Literal, Any, Dict
 
+from typing_extensions import Annotated
+
+from langchain_core.documents import Document
 from langchain_core.messages import AnyMessage
 from langgraph.graph import add_messages
 from langgraph.managed import IsLastStep
-from typing_extensions import Annotated
-from langchain_core.documents import Document
-from react_agent.structures import VideoScript, VideoMetadata, AudioMetadata, EditMediaResult, CaptionOutput
+
+from react_agent.structures import (
+    VideoScript,
+    VideoMetadata,
+    AudioMetadata,
+    EditMediaResult,
+    CaptionOutput,
+)
 from react_agent.handle_captions import VideoCaptioner
 
 def add_queries(existing: Sequence[str], new: Sequence[str]) -> Sequence[str]:

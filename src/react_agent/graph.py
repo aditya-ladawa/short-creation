@@ -1,40 +1,61 @@
+import os
+import re
+import json
+import asyncio
+import requests
+from pathlib import Path
 from datetime import datetime, timezone
 from typing import Dict, Any, List
+
+from dotenv import load_dotenv
+from pydantic import BaseModel
+
+import ffmpeg
+
 from langchain_core.messages import AIMessage, HumanMessage, trim_messages
 from langchain_core.messages.utils import count_tokens_approximately
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain_core.runnables import RunnableConfig
+
 from langgraph.graph import StateGraph
 from langgraph.prebuilt import ToolNode
-from react_agent.configuration import Configuration
-from react_agent.state import InputState, State
-from react_agent.utils import load_chat_model, videoscript_to_text, get_message_text, extract_video_data, sanitize_filename, extract_video_name
-from react_agent.structures import *
-import json
 from langgraph.types import interrupt, Command
 from langgraph.constants import START, END
-from langchain_deepseek import ChatDeepSeek
-from langchain_core.runnables import RunnableConfig
-from langchain_groq import ChatGroq
-from pathlib import Path
-import requests
-import json
-import re
-from react_agent.pexels_handler import pexels
-from react_agent.handle_kokoro import generate_tts
-import asyncio
-import os
-from pathlib import Path
-import ffmpeg
 
-from dotenv import load_dotenv
+from langchain_deepseek import ChatDeepSeek
+from langchain_groq import ChatGroq
+
+from react_agent.configuration import Configuration
+from react_agent.state import InputState, State
+from react_agent.structures import *
+from react_agent.utils import (
+    load_chat_model,
+    videoscript_to_text,
+    get_message_text,
+    extract_video_data,
+    sanitize_filename,
+    extract_video_name,
+)
+from react_agent.handle_kokoro import generate_tts
+from react_agent.handle_captions import VideoCaptioner
+from react_agent.pexels_handler import pexels, search_and_validate_videos
+from react_agent.video_editor import (
+    BASE_VIDEOS_PATH,
+    OUTPUT_DIR_BASE,
+    SECTION_ORDER,
+    get_duration,
+    apply_segment_effects,
+    create_reel_for_audio,
+    concatenate_sections,
+)
 
 load_dotenv()
-
+video_captioner = VideoCaptioner()
 
 os.makedirs(os.environ.get('BASE_VIDEOS_PATH'), exist_ok=True)
 os.makedirs(os.environ.get('OUTPUT_DIR_BASE'), exist_ok=True)
 os.makedirs(os.environ.get('BASE_SCRIPT_PATH'), exist_ok=True)
-# os.makedirs(os.environ.get('CAPTIONS_FONT_PATH'), exist_ok=True)
+
 ## Load the chat model
 model = ChatDeepSeek(model='deepseek-chat', temperature=0.6)
 
@@ -125,10 +146,10 @@ async def get_videos(state: State) -> dict:
     """Search Pexels for videos matching each visual scene and download multiple validated videos with metadata."""
     latest_script_obj = state.scripts[-1]
     safe_title = sanitize_filename(latest_script_obj.title)
+
     video_dir = Path(f"my_test_files/videos/{safe_title}/")
     video_dir.mkdir(parents=True, exist_ok=True)
 
-    # Ensure visuals directory exists
     visuals_dir = video_dir / "visuals"
     visuals_dir.mkdir(parents=True, exist_ok=True)
 
@@ -138,162 +159,11 @@ async def get_videos(state: State) -> dict:
     for section in latest_script_obj.sections:
         section_dir = visuals_dir / sanitize_filename(f"section_{section.section}")
         section_dir.mkdir(parents=True, exist_ok=True)
-        
-        search_query = section.visual.scene
-        max_retries = 5  # Maximum retries for each section
-        retry_count = 0
-        success = False
-        
-        while retry_count < max_retries and not success:
-            try:
-                search_params = {
-                    "query": search_query,
-                    "orientation": "portrait",
-                    "size": "medium",
-                    "page": 1,
-                    "per_page": 10,
-                }
 
-                # 1. Search Pexels
-                pexels_response = pexels.search_videos(search_params)
-                if pexels_response.get("status_code") != 200:
-                    raise ValueError(f"Pexels API returned {pexels_response.get('status_code')}")
+        videos, failures = await search_and_validate_videos(section=section, model=model, section_dir=section_dir)
+        validated_videos.extend(videos)
+        failed_sections.extend(failures)
 
-                # 2. Extract and validate video data
-                videos_data = extract_video_data(pexels_response)
-                if not videos_data:
-                    raise ValueError("No videos returned from Pexels")
-
-                video_dict = {
-                    str(video['id']): extract_video_name(video['video_url'])
-                    for video in videos_data
-                }
-                video_entries = "\n".join([f"{k}: {v}" for k, v in video_dict.items()])
-
-                # 3. LLM Prompt for multiple matches
-                system_prompt = f"""You are an expert video assistant.
-
-                        Given the script section:
-                        {section.text}
-
-                        And the search query used:
-                        {search_query}
-
-                        Here are some matching videos received from Pexels API in the format 'id':'video_name'.
-                        {video_entries}
-
-                        Choose 3-6 MOST relevant videos for this section. Respond with a list of matches where each item contains \"video_id\" and \"video_name\"."""
-
-                prompt = ChatPromptTemplate.from_messages([
-                    ("system", system_prompt),
-                ])
-
-                get_matching_videos = prompt | model.with_structured_output(PexelsVideoMultiMatch)
-                result: PexelsVideoMultiMatch = await get_matching_videos.ainvoke({
-                    "section_text": section.text,
-                    "search_query": search_query,
-                    "video_entries": video_entries
-                })
-
-                print(f"\n||::|| Search query: {search_query}")
-                print(f"✅ Selected matches: {[m for m in result.matches]}")
-
-                # 4. Loop through each match and download with retries
-                for match in result.matches:
-                    video_id = match["video_id"]
-                    video_name = match["video_name"]
-                    video_success = False
-                    video_retries = 0
-                    max_video_retries = 3
-
-                    while not video_success and video_retries < max_video_retries:
-                        try:
-                            matching_video = next((v for v in videos_data if str(v["id"]) == video_id), None)
-                            if not matching_video:
-                                print(f"⚠️ Skipped invalid video ID from LLM: {video_id}")
-                                break
-
-                            target_aspect = 9 / 16
-                            sd_videos = [
-                                v for v in matching_video.get("video_files", [])
-                                if v["quality"] == "hd" and v["width"] / v["height"] <= target_aspect
-                            ] or [
-                                v for v in matching_video.get("video_files", []) if v["quality"] == "hd"
-                            ]
-
-                            if not sd_videos:
-                                print(f"⚠️ No suitable HD format for video {video_id}")
-                                break
-
-                            download_video = min(sd_videos, key=lambda v: abs((v["width"] / v["height"]) - target_aspect))
-                            filename = sanitize_filename(f"{section.section}_{video_id}") + '.mp4'
-                            video_path = section_dir / filename
-
-                            response = requests.get(download_video["link"], stream=True)
-                            response.raise_for_status()
-                            
-                            # Create temp file first to ensure complete download
-                            temp_path = video_path.with_suffix('.tmp')
-                            with open(temp_path, "wb") as f:
-                                for chunk in response.iter_content(chunk_size=8192):
-                                    f.write(chunk)
-                            
-                            # Rename temp file to final name after successful download
-                            temp_path.rename(video_path)
-
-                            video_meta = VideoMetadata(
-                                script_section=section.section,
-                                pexels_id=matching_video["id"],
-                                file_path=str(video_path),
-                                search_query=search_query,
-                                author=matching_video.get("author"),
-                                author_url=str(matching_video.get("author_url")),
-                                video_url=str(matching_video.get("video_url")),
-                                dimensions=f"{download_video['width']}x{download_video['height']}",
-                                duration=matching_video.get("duration"),
-                                quality=download_video.get("quality")
-                            )
-                            validated_videos.append(video_meta)
-                            video_success = True
-                            
-                        except Exception as e:
-                            video_retries += 1
-                            print(f"⚠️ Failed to download video {video_id} (attempt {video_retries}/{max_video_retries}): {str(e)}")
-                            if video_retries >= max_video_retries:
-                                print(f"❌ Max retries reached for video {video_id}")
-                                failed_sections.append({
-                                    "section": section.section,
-                                    "error": f"Failed to download video {video_id}: {str(e)}",
-                                    "query": search_query,
-                                    "video_id": video_id
-                                })
-                            else:
-                                await asyncio.sleep(2 ** video_retries)  # Exponential backoff
-
-                # If we got at least one video for this section, consider it a success
-                if any(v.script_section == section.section for v in validated_videos):
-                    success = True
-                else:
-                    raise ValueError("No videos were successfully downloaded for this section")
-
-            except Exception as e:
-                retry_count += 1
-                print(f"⚠️ Failed search with query '{search_query}' (attempt {retry_count}/{max_retries}): {str(e)}")
-                
-                if retry_count >= max_retries:
-                    print(f"❌ Max retries reached for section {section.section}")
-                    failed_sections.append({
-                        "section": section.section,
-                        "error": str(e),
-                        "query": search_query
-                    })
-                else:
-                    if "No videos returned from Pexels" in str(e):
-                        print("🔁 Asking model to generalize the query...")
-                        search_query = await model.ainvoke(f"Suggest a more general search query for: '{search_query}'")
-                    await asyncio.sleep(2 ** retry_count)  # Exponential backoff
-
-    # Save metadata
     metadata_path = visuals_dir / "video_metadata.json"
     with open(metadata_path, "w") as f:
         json.dump([v.model_dump(mode='json') for v in validated_videos], f, indent=4)
@@ -302,6 +172,8 @@ async def get_videos(state: State) -> dict:
         "videos": validated_videos,
         "failed_sections": failed_sections
     }
+
+
 
 async def generate_audio(state: State) -> dict:
     """Generates TTS audio for the latest script without duplication"""
@@ -334,10 +206,6 @@ async def route_feedback(state: State):
     else:
         return 'revise_script'
 
-
-from react_agent.video_editor import BASE_VIDEOS_PATH, OUTPUT_DIR_BASE, SECTION_ORDER, get_duration, apply_segment_effects, create_reel_for_audio, concatenate_sections
-from pydantic import BaseModel
-from fastapi.responses import JSONResponse
 
 async def media_editor(state: State) -> EditMediaResult:
     latest_script_obj = state.scripts[-1]
@@ -480,11 +348,6 @@ async def media_editor(state: State) -> EditMediaResult:
     }
 
 
-import json
-from react_agent.handle_captions import VideoCaptioner
-video_captioner = VideoCaptioner()
-from pathlib import Path
-import ffmpeg
 
 async def add_captions(state: State) -> CaptionOutput:
     """Add captions to video and return structured output"""

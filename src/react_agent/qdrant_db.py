@@ -209,6 +209,7 @@ async def process_text_to_chunks(full_text: str, filename: str) -> List[Dict]:
     except Exception as e:
         print_status(f"Error processing chunks: {str(e)}")
         raise
+
 def safe_truncate(text: str, max_tokens: int) -> str:
     """Token-aware truncation preserving sentence boundaries"""
     tokens = tokenizer.encode(text)
@@ -361,5 +362,5 @@ async def process_pdf_directory(directory: str = "my_test_files") -> None:
     finally:
         print_status("Pipeline finished")
 
-if __name__ == "__main__":
-    asyncio.run(process_pdf_directory())
+# if __name__ == "__main__":
+#     asyncio.run(process_pdf_directory())

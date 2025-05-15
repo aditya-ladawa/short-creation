@@ -23,6 +23,18 @@ from react_agent.pexels_handler import pexels
 from react_agent.handle_kokoro import generate_tts
 import asyncio
 import os
+from pathlib import Path
+import ffmpeg
+
+from dotenv import load_dotenv
+
+load_dotenv()
+
+
+os.makedirs(os.environ.get('BASE_VIDEOS_PATH'), exist_ok=True)
+os.makedirs(os.environ.get('OUTPUT_DIR_BASE'), exist_ok=True)
+os.makedirs(os.environ.get('BASE_SCRIPT_PATH'), exist_ok=True)
+# os.makedirs(os.environ.get('CAPTIONS_FONT_PATH'), exist_ok=True)
 ## Load the chat model
 model = ChatDeepSeek(model='deepseek-chat', temperature=0.6)
 
@@ -48,7 +60,8 @@ async def script_generator(state: State) -> Dict[str, Any]:
     
     script_gen_chain = script_gen_template | model.with_structured_output(VideoScript)
     script_response = await script_gen_chain.ainvoke({"messages": trimmed_messages})
-    script_text = videoscript_to_text(script_response)
+    safe_title = sanitize_filename(script_response.title)
+    script_text, _ = videoscript_to_text(script_response, safe_title)
     return {
         "scripts": [script_response],
         "messages": [AIMessage(content=script_text)]
@@ -448,7 +461,7 @@ async def media_editor(state: State) -> EditMediaResult:
     final_reel_path = None
     if ordered_paths:
         final_name = "".join(c if c.isalnum() or c in ('_', '-') else '_' for c in safe_title)
-        final_reel_path = os.path.join(output_script_root, f"{final_name}_final_ordered_reel.mp4")
+        final_reel_path = os.path.join(output_script_root, f"{final_name}.mp4")
         await concatenate_sections(ordered_paths, final_reel_path)
     else:
         warning = f"No valid sections found for concatenation in script '{safe_title}'"
@@ -467,6 +480,64 @@ async def media_editor(state: State) -> EditMediaResult:
     }
 
 
+import json
+from react_agent.handle_captions import VideoCaptioner
+video_captioner = VideoCaptioner()
+from pathlib import Path
+import ffmpeg
+
+async def add_captions(state: State) -> CaptionOutput:
+    """Add captions to video and return structured output"""
+
+    captioner = video_captioner
+    print(f"\n[INFO] Using captioner from state: {captioner}\n")
+
+    # Get the latest script and create a sanitized title
+    latest_script_obj = state.scripts[-1]
+    safe_title = sanitize_filename(latest_script_obj.title)
+
+    # Create output directory
+    output_dir = Path(os.path.join(OUTPUT_DIR_BASE, safe_title))
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    # Define file paths
+    reel_video = output_dir / f"{safe_title}.mp4"
+    reel_captioned = output_dir / f"CAPTIONED_{safe_title}.mp4"
+    subtitles_json = output_dir / f"{safe_title}.json"
+
+    reel_audio = await captioner.extract_audio_from_video(reel_video)
+
+    # Step 2: Generate word-level subtitles
+    print("[INFO] Generating word-level subtitles...")
+    word_segments = await captioner.generate_subtitles(str(reel_audio))
+
+    # Step 3: Structure subtitles into lines
+    print("[INFO] Structuring subtitles into lines...")
+    line_subtitles = await captioner.create_line_level_subtitles(word_segments)
+
+    # Step 4: Save subtitle JSON
+    print(f"[INFO] Saving subtitles to JSON: {subtitles_json}")
+    await captioner.save_subtitles_to_json(line_subtitles, str(subtitles_json))
+
+    # Step 5: Add animated captions to video
+    print("[INFO] Rendering video with captions...")
+    await captioner.add_captions_to_video(
+        video_path=str(reel_video),
+        subtitles=line_subtitles,
+        output_path=str(reel_captioned)
+    )
+
+    print(f"[SUCCESS] Captioned video created at: {reel_captioned}")
+
+    # Return structured output
+    return CaptionOutput(
+        captioned_video_path=str(reel_captioned),
+        subtitles_json_path=str(subtitles_json),
+        original_video_path=str(reel_video),
+        audio_path=str(reel_audio)
+    )
+
+
 # Step 6: Define the nodes and the workflow
 builder = StateGraph(State, input=InputState, config_schema=Configuration)
 
@@ -478,6 +549,8 @@ builder.add_node('script_generator', script_generator)
 builder.add_node('get_videos', get_videos)
 builder.add_node('generate_audio', generate_audio)  # New audio generation node
 builder.add_node('media_editor', media_editor)
+builder.add_node('add_captions', add_captions)
+
 
 
 
@@ -504,7 +577,9 @@ builder.add_edge("generate_audio", "get_videos")  # Audio → Videos
 
 # Final edge after video generation
 builder.add_edge("get_videos", 'media_editor')
-builder.add_edge('media_editor', '__end__')
+builder.add_edge('media_editor', 'add_captions')
+
+builder.add_edge('add_captions', '__end__')
 
 
 graph = builder.compile()

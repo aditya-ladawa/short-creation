@@ -1,10 +1,8 @@
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Literal
 from pydantic import BaseModel, Field
 from pydantic import HttpUrl, Field
-from typing import Literal
 from pydantic import BaseModel, Field, HttpUrl, field_validator
 from pathlib import Path
-from typing import Literal, Optional
 from datetime import datetime
 import re
 
@@ -218,3 +216,15 @@ class EditMediaResult(BaseModel):
     sections_created: List[SectionOutput]
     warnings: List[str]
 
+
+class CaptionOutput(BaseModel):
+    captioned_video_path: str = Field(..., description="Path to the captioned video file")
+    subtitles_json_path: Optional[str] = Field(None, description="Path to the subtitles JSON file")
+    original_video_path: str = Field(..., description="Path to the original video file")
+    status: str = Field("success", description="Status of the captioning operation")
+    message: Optional[str] = Field(None, description="Additional status message")
+
+class CaptioningError(BaseModel):
+    error: str = Field(..., description="Error message")
+    original_video_path: str = Field(..., description="Path to the original video file")
+    status: str = Field("error", description="Status of the captioning operation")

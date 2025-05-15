@@ -9,7 +9,8 @@ from langgraph.graph import add_messages
 from langgraph.managed import IsLastStep
 from typing_extensions import Annotated
 from langchain_core.documents import Document
-from react_agent.structures import VideoScript, VideoMetadata, AudioMetadata, EditMediaResult
+from react_agent.structures import VideoScript, VideoMetadata, AudioMetadata, EditMediaResult, CaptionOutput
+from react_agent.handle_captions import VideoCaptioner
 
 def add_queries(existing: Sequence[str], new: Sequence[str]) -> Sequence[str]:
     return list(existing) + list(new)
@@ -62,3 +63,5 @@ class State(InputState, RetrievalState):
     audio_metadata: AudioMetadata = field(default_factory=dict)
 
     media_result: EditMediaResult = field(default_factory=dict)
+
+    caption_output: CaptionOutput = field(default_factory=dict)

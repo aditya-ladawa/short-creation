@@ -7,7 +7,13 @@ from langchain_core.documents import Document
 from typing_extensions import Optional, List, Dict
 import re
 import json
+from dotenv import load_dotenv
+import os
 
+load_dotenv()
+
+
+BASE_SCRIPT_PATH = os.environ.get('BASE_SCRIPT_PATH')
 
 def get_message_text(msg: BaseMessage) -> str:
     """Get the text content of a message."""
@@ -85,94 +91,60 @@ def format_docs(docs: Optional[list[Document]]) -> str:
 from typing import List
 from .structures import VideoScript, VideoSection, Visual, SectionSound, GlobalSound
 
-def videoscript_to_text(script_obj: VideoScript) -> str:
+from pathlib import Path
+
+def videoscript_to_text(script_obj: VideoScript, safe_title: str) -> tuple[str, str]:
     """
-    Converts a VideoScript Pydantic object into a formatted text string.
-    Now supports unified background music and section-specific sound design.
-    
+    Converts a VideoScript Pydantic object into:
+    1. A formatted text string (with visuals/sound)
+    2. Section-only texts joined by '\n\n'
+
+    Saves the section-only text to a .txt file in the specified path.
+
     Args:
-        script_obj: An instance of the VideoScript Pydantic model with:
-                   - Unified background_music (GlobalSound)
-                   - Section-specific sound effects (SectionSound)
-                   
+        script_obj: VideoScript object
+        safe_title: Filename-safe title for saving
+
     Returns:
-        A formatted string representing the video script with audio annotations.
+        (formatted_script_text, section_text_only)
     """
     lines = []
-    
+    section_texts = []
+
     # Header with title and global music
     lines.append(f"# 🎬 {script_obj.title}\n")
     lines.append(f"🎵 Background Music: {script_obj.background_music.music}\n")
     lines.append(f"⏱ Length: {script_obj.length}\n")
-    
-    # Process each section
+
     for section in script_obj.sections:
+        # Full formatted content
         lines.append(f"## {section.section}\n{section.text}")
-        
-        # Visual elements
+        section_texts.append(section.text)
+
+        # Visual and audio annotations
         visual = section.visual
         lines.append(f"🎥 Scene: {visual.scene}")
         lines.append(f"✨ Transition: {visual.transition}")
         lines.append(f"📷 Camera: {visual.camera_angle}")
-        
-        # Sound design elements
+
         sound = visual.sound
         if sound.sound_effects:
             timing = f" ({sound.sound_effect_timing})" if sound.sound_effect_timing else ""
             lines.append(f"🔊 SFX: {sound.sound_effects}{timing}")
         if sound.silence_duration:
             lines.append(f"🤫 Silence: {sound.silence_duration}")
-        
-        lines.append("")  # Section separator
-    
-    return "\n".join(lines)
 
+        lines.append("")
 
-# from typing import List
-# from .structures import VideoScript, VideoSection, Visual, SectionSound, GlobalSound
+    formatted_script = "\n".join(lines)
+    section_text_only = "\n\n".join(section_texts)
 
-# def videoscript_to_text(script_obj: VideoScript) -> str:
-#     """
-#     Converts a VideoScript TypedDict object into a formatted text string.
-#     Now supports unified background music and section-specific sound design.
-    
-#     Args:
-#         script_obj: An instance of the VideoScript TypedDict with:
-#                    - Unified background_music (GlobalSound)
-#                    - Section-specific sound effects (SectionSound)
-                   
-#     Returns:
-#         A formatted string representing the video script with audio annotations.
-#     """
-#     lines = []
-    
-#     # Header with title and global music
-#     lines.append(f"# 🎬 {script_obj['title']}\n")
-#     lines.append(f"🎵 Background Music: {script_obj['background_music']['music']}\n")
-#     lines.append(f"⏱ Length: {script_obj['length']}\n")
-    
-#     # Process each section
-#     for section in script_obj['sections']:
-#         lines.append(f"## {section['section']}\n{section['text']}")
-        
-#         # Visual elements
-#         visual = section['visual']
-#         lines.append(f"🎥 Scene: {visual['scene']}")
-#         lines.append(f"✨ Transition: {visual['transition']}")
-#         lines.append(f"📷 Camera: {visual['camera_angle']}")
-        
-#         # Sound design elements
-#         sound = visual['sound']
-#         if sound.get('sound_effects'):
-#             timing = f" ({sound['sound_effect_timing']})" if sound.get('sound_effect_timing') else ""
-#             lines.append(f"🔊 SFX: {sound['sound_effects']}{timing}")
-#         if sound.get('silence_duration'):
-#             lines.append(f"🤫 Silence: {sound['silence_duration']}")
-        
-#         lines.append("")  # Section separator
-    
-#     return "\n".join(lines)
+    # Save section-only text
+    output_path = Path(BASE_SCRIPT_PATH) / f"{safe_title}.txt"
+    output_path.write_text(section_text_only, encoding="utf-8")
+    print(f"✅ Saved section-only script text at: {output_path}")
 
+    return formatted_script, section_text_only
 
 
 def extract_video_data(pexels_response: Dict) -> List[Dict]:
@@ -224,35 +196,6 @@ def extract_video_name(url: str) -> str:
     return "Untitled"
 
 
-# def extract_video_data(videos_dict):
-#     results = []
-#     for video in videos_dict.get('data', {}).get('videos', []):
-#         video_info = {
-#             'id': video.get('id'),
-#             'duration': video.get('duration'),
-#             'width': video.get('width'),
-#             'height': video.get('height'),
-#             'preview_image': video.get('image'),
-#             'author': video.get('user', {}).get('name'),
-#             'author_url': video.get('user', {}).get('url'),
-#             'video_url': video.get('url'),
-#             'video_files': []
-#         }
-
-#         for vf in video.get('video_files', []):
-#             video_info['video_files'].append({
-#                 'quality': vf.get('quality'),
-#                 'file_type': vf.get('file_type'),
-#                 'width': vf.get('width'),
-#                 'height': vf.get('height'),
-#                 'fps': vf.get('fps'),
-#                 'link': vf.get('link'),
-#                 'size': vf.get('size')
-#             })
-
-#         results.append(video_info)
-
-#     return results
 def sanitize_filename(name: str) -> str:
     """
     Convert a string to a safe filename:

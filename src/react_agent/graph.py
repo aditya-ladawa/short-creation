@@ -56,10 +56,9 @@ os.makedirs(os.environ.get('BASE_VIDEOS_PATH'), exist_ok=True)
 os.makedirs(os.environ.get('OUTPUT_DIR_BASE'), exist_ok=True)
 os.makedirs(os.environ.get('BASE_SCRIPT_PATH'), exist_ok=True)
 
-## Load the chat model
 model = ChatDeepSeek(model='deepseek-chat', temperature=0.6)
 
-# Step 3: Generate the script using the retrieved documents
+
 async def script_generator(state: State) -> Dict[str, Any]:
     script_gen_prompt = Configuration.script_gen_prompt
 
@@ -89,13 +88,12 @@ async def script_generator(state: State) -> Dict[str, Any]:
     }
 
 
-# Step 4: Request feedback from the user
 async def request_feedback(state: State) -> Dict[str, Any]:
     latest_script = state.messages[-1].content
     user_feedback = interrupt(value=f'{latest_script}\n\nDo you want to revise the script? If not, answer "no" to continue towards video search, else mention the changes.')
     return {'messages': [HumanMessage(content=user_feedback)]}
 
-# Step 5: Revise the script based on user feedback
+
 async def revise_script(state: State) -> Dict[str, Any]:
     user_feedback = state.messages[-1].content
     latest_script_obj = state.scripts[-1]
@@ -141,7 +139,6 @@ async def revise_script(state: State) -> Dict[str, Any]:
     }
 
 
-
 async def get_videos(state: State) -> dict:
     """Search Pexels for videos matching each visual scene and download multiple validated videos with metadata."""
     latest_script_obj = state.scripts[-1]
@@ -174,7 +171,6 @@ async def get_videos(state: State) -> dict:
     }
 
 
-
 async def generate_audio(state: State) -> dict:
     """Generates TTS audio for the latest script without duplication"""
     latest_script = state.scripts[-1]
@@ -197,7 +193,6 @@ async def generate_audio(state: State) -> dict:
     }
 
 
-# Route the feedback based on user's response
 async def route_feedback(state: State):
     user_feedback = state.messages[-1].content
     
@@ -348,7 +343,6 @@ async def media_editor(state: State) -> EditMediaResult:
     }
 
 
-
 async def add_captions(state: State) -> CaptionOutput:
     """Add captions to video and return structured output"""
 
@@ -392,16 +386,19 @@ async def add_captions(state: State) -> CaptionOutput:
 
     print(f"[SUCCESS] Captioned video created at: {reel_captioned}")
 
-    # Return structured output
-    return CaptionOutput(
+    captioned_output = CaptionOutput(
         captioned_video_path=str(reel_captioned),
         subtitles_json_path=str(subtitles_json),
         original_video_path=str(reel_video),
         audio_path=str(reel_audio)
     )
 
+    return {'captioned_output': caption_output}
 
-# Step 6: Define the nodes and the workflow
+
+
+
+# Define the nodes and the workflow
 builder = StateGraph(State, input=InputState, config_schema=Configuration)
 
 # Add all nodes including the new audio generation
@@ -415,25 +412,22 @@ builder.add_node('media_editor', media_editor)
 builder.add_node('add_captions', add_captions)
 
 
-
-
 # Define workflow structure
 builder.add_edge(START, "script_generator")
 # builder.add_edge("script_generator", "request_feedback")
 builder.add_edge("script_generator", "generate_audio")
 
-
 # builder.add_conditional_edges(
 #     'request_feedback',
 #     route_feedback,
 #     path_map={
-#         'generate_audio': 'generate_audio',  # No feedback → generate audio first
-#         'revise_script': 'revise_script'     # Feedback → revise script
+#         'generate_audio': 'generate_audio',
+#         'revise_script': 'revise_script'
 #     }
 # )
 
 # Connect the audio generation to video fetching
-builder.add_edge("generate_audio", "get_videos")  # Audio → Videos
+builder.add_edge("generate_audio", "get_videos")
 
 # # Loop back for revisions
 # builder.add_edge("revise_script", "request_feedback")

@@ -73,4 +73,4 @@ class State(InputState, RetrievalState):
 
     media_result: EditMediaResult = field(default_factory=dict)
 
-    caption_output: CaptionOutput = field(default_factory=dict)
+    captioned_output: CaptionOutput = field(default_factory=dict)

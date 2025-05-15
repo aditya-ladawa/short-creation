@@ -178,3 +178,4 @@ ctc-forced-aligner/
 kokoro_files/
 
 output_reels_fades_ordered_v3/src/react_agent/test.ipynb
+extras/

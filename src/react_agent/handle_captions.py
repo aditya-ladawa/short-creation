@@ -25,7 +25,7 @@ class VideoCaptioner:
     def __init__(self, model_size: str = 'base', device: str = "cpu", compute_type: str = 'int8'):
         self.model = WhisperModel(model_size, device=device, compute_type=compute_type)
         self.subtitle_config = {
-            'max_chars': 40,
+            'max_chars': 60,
             'max_words': 7,
             'max_duration': 4,
             'max_wordgap': 1.5,
@@ -35,7 +35,7 @@ class VideoCaptioner:
             "font": CAPTIONS_FONT_PATH,
             "highlight_fontsize": 65,
             "highlight_color": 'white',
-            "highlight_bg_color": (128, 128, 128),
+            "highlight_bg_color": (0, 0, 200),
             "highlight_padding": 10,
             "highlight_radius": 15,
             "text_position": ('center', 'bottom'),

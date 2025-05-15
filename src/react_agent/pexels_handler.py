@@ -43,10 +43,10 @@ async def search_and_validate_videos(section, model, section_dir: Path) -> Tuple
             if not videos_data:
                 raise ValueError("No videos returned from Pexels")
 
-            print(f"🎥 Retrieved {len(videos_data)} videos from Pexels for query '{search_query}':")
+            print(f"\n🎥 Retrieved {len(videos_data)} videos from Pexels for query '{search_query}':")
             for vid in videos_data:
-                print(f"  - ID: {vid['id']}, Name: {extract_video_name(vid['video_url'])}, Duration: {vid.get('duration')}s")
-
+                print(f" - Name: {extract_video_name(vid['video_url'])}")
+            
             video_dict = {
                 str(video['id']): extract_video_name(video['video_url'])
                 for video in videos_data

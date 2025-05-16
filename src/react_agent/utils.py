@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 from typing import List, Dict
 from typing_extensions import Optional
+import ffmpeg
 
 from dotenv import load_dotenv
 
@@ -142,6 +143,16 @@ def extract_video_name(url: str) -> str:
     if match:
         return match.group(1).replace('-', ' ').title()
     return "Untitled"
+
+
+def get_video_duration(path):
+    try:
+        probe = ffmpeg.probe(path)
+        duration = float(probe['format']['duration'])
+        return duration
+    except Exception as e:
+        print(f"Error retrieving duration: {e}")
+        return None
 
 
 def sanitize_filename(name: str) -> str:

@@ -18,6 +18,8 @@ from react_agent.structures import (
     AudioMetadata,
     EditMediaResult,
     CaptionOutput,
+    FinalOutput,
+    SelectedTrack
 )
 from react_agent.handle_captions import VideoCaptioner
 
@@ -74,3 +76,5 @@ class State(InputState, RetrievalState):
     media_result: EditMediaResult = field(default_factory=dict)
 
     captioned_output: CaptionOutput = field(default_factory=dict)
+
+    final_reel: FinalOutput = field(default_factory=dict)

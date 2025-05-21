@@ -1,9 +1,11 @@
 import re
 from datetime import datetime
 from pathlib import Path
-from typing import List, Optional, Dict, Literal
+from typing import List, Optional, Dict, Literal, Any
 
 from pydantic import BaseModel, Field, HttpUrl, field_validator
+
+from datetime import timedelta
 
 
 class GlobalSound(BaseModel):
@@ -55,7 +57,7 @@ class VideoSection(BaseModel):
 class VideoScript(BaseModel):
     title: str = Field(..., description="Attention-grabbing title")
     length: str = Field(..., description="Duration in seconds")
-    background_music: GlobalSound = Field(..., description="Continuous soundtrack")
+    background_music: GlobalSound = Field(..., description="Continuous background soundtrack")
     sections: List[VideoSection] = Field(..., description="Script sections in order")
 
 class SearchQuery(BaseModel):
@@ -83,9 +85,9 @@ class PexelsVideoMatch(BaseModel):
 class PexelsVideoMultiMatch(BaseModel):
     matches: List[Dict[str, str]] = Field(
         ...,
-        min_items=3,
-        max_items=5,
-        description="List of matched videos with IDs and names (3-5 items required)"
+        min_items=2,
+        max_items=4,
+        description="List of matched videos with IDs and names (2-4 items required)"
     )
 
 def ensure_path(path: str | Path) -> Path:
@@ -228,3 +230,25 @@ class CaptioningError(BaseModel):
     error: str = Field(..., description="Error message")
     original_video_path: str = Field(..., description="Path to the original video file")
     status: str = Field("error", description="Status of the captioning operation")
+
+
+class SelectedTrack(BaseModel):
+    track_index: int
+    track_title: str
+    track_composer: str
+    track_description: str
+    track_duration: str  # Human-readable (MM:SS)
+    track_duration_seconds: float
+    track_url: str
+    recommendation_reason: Optional[str] = None
+    download_path: Optional[str] = None
+    attribution_text: Optional[str] = None
+
+class FinalOutput(BaseModel):
+    final_reel_path: str
+    original_reel_path: str
+    track_info: SelectedTrack
+    processing_metadata: Dict[str, Any] = {}
+    video_duration: float
+    audio_volume: float
+    created_at: str = Field(default_factory=lambda: datetime.now().isoformat())

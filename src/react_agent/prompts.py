@@ -63,7 +63,7 @@ SCRIPT_GEN_PROMPT = """
     In a nutshell:
     "Search Pexels with: 1) 'person [basic action]' 2) '[place] [simple modifier]' 3) Max 3 keywords 4) Avoid specifics 5) Add 'no talking' for clean audio"
 
-    SOUD EFFECTS:
+    SOUND EFFECTS:
     * Use simple, universal sounds — footsteps, ambient room noise, city sounds, faint phone pings.
     * When unsure, leave space for silence or use soft ambient music to match mood.
 

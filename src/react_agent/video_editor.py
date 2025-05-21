@@ -190,7 +190,7 @@ async def create_reel_for_audio(audio_file_path, associated_video_files, output_
         
         # Run blocking ffmpeg.run in a separate thread
         # Note: `quiet=False` will print FFmpeg's output to console. If multiple run concurrently, output may be interleaved.
-        await asyncio.to_thread(ffmpeg.run, out_node, overwrite_output=True, quiet=False)
+        await asyncio.to_thread(ffmpeg.run, out_node, overwrite_output=True, quiet=True)
         
         print(f"Completed section: {output_file_path}")
         return output_file_path

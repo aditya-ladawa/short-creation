@@ -1,23 +1,34 @@
 import uuid
+from uuid import uuid4
 import os
 import asyncio
 import fitz  # PyMuPDF
 import tiktoken
+
 from langchain_google_vertexai import ChatVertexAI
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
+
 from qdrant_client import QdrantClient, models
-from qdrant_client.http.models import Distance, VectorParams
-from typing import List, Dict, Tuple
+from qdrant_client.http.models import Distance, VectorParams, PointStruct
+
+from typing import List, Dict, Tuple, Optional
+
 from datetime import datetime
+
 from dotenv import load_dotenv
-import json
+
+from react_agent.structures import PsychologyShort
+
 from pydantic import BaseModel, Field
+
 from langchain_qdrant import QdrantVectorStore, RetrievalMode, FastEmbedSparse
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+
 from tqdm import tqdm
 import gc
 import psutil
+import json
 
 load_dotenv()
 
@@ -361,6 +372,62 @@ async def process_pdf_directory(directory: str = "my_test_files") -> None:
         raise
     finally:
         print_status("Pipeline finished")
+
+
+class TopicVectorStore:
+    def __init__(self, embeddings, qdrant_url: str, api_key: str, collection_name: str = "psychology-topic-cache"):
+        self.embeddings = embeddings
+        self.collection_name = collection_name
+        self.vector_name = "dense"
+
+        self.qdrant_client = QdrantClient(
+            url=qdrant_url,
+            api_key=api_key,
+        )
+
+        # Create collection if it doesn't exist
+        if not self.qdrant_client.collection_exists(collection_name):
+            self.qdrant_client.create_collection(
+                collection_name=collection_name,
+                vectors_config={self.vector_name: VectorParams(size=768, distance=Distance.COSINE)}
+            )
+
+        # Ensure proper LangChain QdrantVectorStore init with named vector
+        self.store = QdrantVectorStore(
+            client=self.qdrant_client,
+            collection_name=self.collection_name,
+            embedding=self.embeddings,
+            vector_name=self.vector_name
+        )
+
+    async def add_concept(self, insight: BaseModel):
+        content = f"{insight.explanation} | {insight.psychological_effect}"
+        doc = Document(
+            page_content=content,
+            metadata={
+                "title": insight.concept_title,
+                "timestamp": datetime.now().isoformat(),
+                "raw_data": insight.model_dump()
+            }
+        )
+        await self.store.aadd_documents([doc], ids=[str(uuid4())])
+
+    async def is_duplicate(self, insight: BaseModel, threshold: float = 0.85) -> Tuple[bool, Optional[str]]:
+        query = f"{insight.explanation.strip()} | {insight.psychological_effect.strip()}"
+        result = await self.store.asimilarity_search_with_score(query, k=1)
+        if not result:
+            return False, None
+        doc, score = result[0]
+        print(f"\nSCORE: {score}")
+        return score >= threshold, doc.metadata.get("title")
+
+
+topic_store = TopicVectorStore(
+    embeddings=embeddings,
+    qdrant_url=QDRANT_URL,
+    api_key=QDRANT_API_KEY,
+    collection_name="psychology-topic-cache"
+)
 
 # if __name__ == "__main__":
 #     asyncio.run(process_pdf_directory())

@@ -95,6 +95,13 @@ class Configuration(BaseConfiguration):
         },
     )
 
+    psych_gen_prompt: str = field(
+        default=prompts.PSYCH_GEN_PROMPT,
+        metadata={
+            "description": "The system prompt for topic generation for a short video on psychological concepts"
+        },
+    )
+
     model: Annotated[str, {"__template_metadata__": {"kind": "llm"}}] = field(
         default="deepseek/deepseek-chat",
         metadata={

@@ -69,30 +69,7 @@ SCRIPT_GEN_PROMPT = """
 
     SCRIPT EXAMPLES TO CONVEY WHAT LEVEL OF SCRIPT CONTENT WE WANT:
 
-    Script Example 1: "Why You Always Feel Like the Bad Guy—Even When You’re the One Being Hurt"
-    HOOK (5–10s):
-    "Ever walked away from an argument knowing you were right—but still feeling like the villain?"
-
-    CONCEPT (10–15s):
-    That twisting guilt in your stomach after you stand up for yourself? That’s not conscience—it’s conditioning. If you grew up with emotional parentification or were praised for being “the mature one,” you probably learned that your needs are a problem, and your silence is love. That guilt isn’t your fault—it was planted.
-
-    REAL-WORLD EXAMPLE (25–35s):
-    Your boyfriend crosses a line—flirts with someone right in front of you at a party. You don’t say anything there. You don’t want to be ‘crazy’. But on the ride home, you bring it up. Calmly. You say it made you uncomfortable. He pauses, looks wounded. Says, “Wow. I was just trying to make the night fun. I didn’t think you’d twist it like that.”
-    Now you feel like the problem. Like you ruined the night. So you apologize. Again. And that night, you lie awake thinking, “Was I overreacting?”
-    You weren’t. You were being emotionally manipulated.
-    And the worst part? This isn’t the first time.
-    You’ve done this dance before—with your mom, when you said you didn’t want to come home for the holidays. With your boss, when you said no to overtime. Every time you speak your truth, someone makes you feel like you’ve hurt them… just for having boundaries.
-
-    PSYCHOLOGICAL INSIGHT (10–15s):
-    This is what guilt-conditioning looks like. You’ve been trained to associate asserting yourself with hurting others. So now, guilt shows up not when you do something wrong—but when you finally do something right for yourself. It’s also fawn response: a trauma pattern where you make yourself small to avoid rejection or conflict.
-
-    ACTIONABLE TIP (10–15s):
-    When that wave of guilt hits you after setting a boundary, don’t suppress it. Track it. Literally write down: “What did I say?” “Was it disrespectful?” “Did I cross a line—or did I just protect one?” Guilt doesn’t always mean you did something wrong. Sometimes it means you’re healing in a system that counted on you staying broken. The goal isn’t to stop feeling guilty overnight—it’s to stop mistaking that guilt as truth.
-
-    CTA (5s):
-    Follow for real-world psychology that helps you stop apologizing for your own boundaries—and start taking your life back.
-
-    Script Example 2: "Why You're Overperforming at Work—And Still Feel Like a Fraud"
+    Script Example: "Why You're Overperforming at Work—And Still Feel Like a Fraud"
     HOOK (5–10s):
     You stay late. You overdeliver. You fix problems no one else even notices.
     But you still walk into every meeting waiting to be exposed.
@@ -141,7 +118,37 @@ SCRIPT_GEN_PROMPT = """
 """
 
 
+PSYCH_GEN_PROMPT = """
+Generate 1 cutting-edge, raw, real-world psychological power concept specifically designed for YouTube Shorts. 
+This concept must pierce through the saturated self-help and psychology content space and deliver ruthless clarity, deeply actionable tactics, and advanced mental leverage.
 
+The LLM must draw from multiple domains (psychology, behavioral economics, cognitive neuroscience, evolutionary biology, dark psychology, military psyops, social dynamics, manipulation, game theory, etc.) 
+and trespass into rarely discussed, uncomfortable gray-area concepts that can act as real-world strategic weapons—not just academic ideas.
+
+These concepts should be dirty, raw, taboo, tactical, and brutally effective—something that makes a viewer stop scrolling, feel slightly disturbed but deeply enlightened. 
+Avoid feel-good clichés and generic wisdom. Instead, extract the "secret playbook" truths that no one teaches but everyone *uses*.
+
+Each concept must include:
+1. Concept Title (under 5 words – punchy, memorable)
+2. Brief Explanation (real-world scenario or pattern – not theoretical)
+3. Psychological Effect (what it triggers inside people OR how it changes behavior)
+4. Real-World Application (a tactical use-case – in business, dating, negotiations, betrayal, influence, survival, etc.)
+
+Bonus points for concepts that:
+- Help decode betrayal, mind control, power imbalance, emotional warfare
+- Reverse-engineer manipulation seen in real life
+- Hack social perception, emotional leverage, attention economy
+- Weaponize introspection or cognitive bias
+
+Also generate YouTube metadata for this concept:
+- Title suggestion
+- Short video description (100-300 words) explaining the insight + call to action
+- Relevant hashtags and tags (10–15)
+- CTA line (subscribe, follow, like, etc.)
+- Value pitch in one line (Why should someone watch this)
+
+Output format: A Python dictionary or Pydantic model instance of class `PsychologyShort`.
+"""
 
 QUERY_SYSTEM_PROMPT = """
     Generate 3-5 distinct search queries to retrieve relevant psychological content for script improvement. 

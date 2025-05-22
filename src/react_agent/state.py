@@ -19,7 +19,8 @@ from react_agent.structures import (
     EditMediaResult,
     CaptionOutput,
     FinalOutput,
-    SelectedTrack
+    SelectedTrack,
+    PsychologyShort
 )
 from react_agent.handle_captions import VideoCaptioner
 
@@ -78,3 +79,7 @@ class State(InputState, RetrievalState):
     captioned_output: CaptionOutput = field(default_factory=dict)
 
     final_reel: FinalOutput = field(default_factory=dict)
+
+    psych_insight: PsychologyShort = field(default_factory=dict)
+
+    previous_topics: List[PsychologyShort] = field(default_factory=list)

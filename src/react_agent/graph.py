@@ -13,7 +13,7 @@ from pydantic import BaseModel
 
 import ffmpeg
 
-from langchain_core.messages import AIMessage, HumanMessage, trim_messages
+from langchain_core.messages import AIMessage, HumanMessage, trim_messages, SystemMessage
 from langchain_core.messages.utils import count_tokens_approximately
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.runnables import RunnableConfig
@@ -29,6 +29,7 @@ from langchain_groq import ChatGroq
 from react_agent.configuration import Configuration
 from react_agent.state import InputState, State
 from react_agent.structures import *
+from react_agent.qdrant_db import TopicVectorStore, topic_store
 from react_agent.utils import (
     load_chat_model,
     videoscript_to_text,
@@ -57,14 +58,75 @@ video_captioner = VideoCaptioner()
 os.makedirs(os.environ.get('BASE_VIDEOS_PATH'), exist_ok=True)
 os.makedirs(os.environ.get('OUTPUT_DIR_BASE'), exist_ok=True)
 os.makedirs(os.environ.get('BASE_SCRIPT_PATH'), exist_ok=True)
-os.makedirs(os.environ.get('BACKGROUND_MUSIC_PATH'), exist_ok=True)
 
 
-model = ChatDeepSeek(model='deepseek-chat', temperature=0.6)
+model = ChatDeepSeek(model='deepseek-chat', temperature=0.7)
+
+
+async def topic_data_generator(state: State) -> dict:
+    psych_gen_prompt = Configuration.psych_gen_prompt
+    base_system_msg = (
+        "You are a ruthless expert in real-world psychology, influence, and manipulation, "
+        "trained to uncover deep, rarely-discussed tactics that give people real leverage in chaotic environments. "
+        "Your output must be raw, actionable, and gray-area by nature."
+    )
+
+    prior_titles = [entry.concept_title for entry in state.previous_topics] if state.previous_topics else []
+    print(f"\nPRIOR TITLES: {prior_titles}\n")
+    retry_attempts = 3
+
+    for attempt in range(retry_attempts):
+        retry_info = ""
+        if prior_titles:
+            retry_info = (
+                f"\nAvoid these previously generated topics: {', '.join(prior_titles)}.\n"
+                "Avoid previously discussed topics. Focus on deeply overlooked, radically novel psychological angles that are rarely touched in popular content."
+            )
+
+        # Trim conversation messages
+        trimmed_messages = trim_messages(
+            messages=state.messages,
+            token_counter=count_tokens_approximately,
+            strategy='last',
+            max_tokens=121128,
+            include_system=True,
+            allow_partial=False,
+            start_on='human'
+        )
+
+        # Prepare prompt
+        psych_prompt_template = ChatPromptTemplate.from_messages([
+            SystemMessage(content=base_system_msg + retry_info),
+            SystemMessage(content=psych_gen_prompt),
+            MessagesPlaceholder(variable_name="messages"),
+        ])
+
+        # Create chain
+        psych_gen_chain = psych_prompt_template | model.with_structured_output(PsychologyShort)
+
+        # Call model with context
+        insight: PsychologyShort = await psych_gen_chain.ainvoke({
+            "messages": trimmed_messages
+        })
+
+        # Check for duplication
+        is_duplicate, match_title = await topic_store.is_duplicate(insight)
+        if not is_duplicate:
+            await topic_store.add_concept(insight)
+            updated_topics = state.previous_topics + [insight] if state.previous_topics else [insight]
+            return {
+                'psych_insight': insight,
+                'previous_topics': updated_topics
+            }
+
+    raise ValueError(f"All {retry_attempts} attempts generated duplicate topics. "
+                     "Consider revising the prompt or increasing creativity.")
+
 
 
 async def script_generator(state: State) -> Dict[str, Any]:
     script_gen_prompt = Configuration.script_gen_prompt
+    topic_selected = state.psych_insight
 
     trimmed_messages = trim_messages(
         messages=state.messages,
@@ -76,14 +138,22 @@ async def script_generator(state: State) -> Dict[str, Any]:
         start_on='human'
     )
 
+    human_message = f"""
+        Concept title: {topic_selected.concept_title}\n
+        Explanation: {topic_selected.concept_title}\n
+        Psychological Effect: {topic_selected.concept_title}\n
+        Real World Application: {topic_selected.concept_title}\n
+
+
+    """
     
     script_gen_template = ChatPromptTemplate.from_messages([
         ("system", script_gen_prompt),
-        MessagesPlaceholder(variable_name="messages"),
+        ('human', human_message),
     ])
-    
+
     script_gen_chain = script_gen_template | model.with_structured_output(VideoScript)
-    script_response = await script_gen_chain.ainvoke({"messages": trimmed_messages})
+    script_response = await script_gen_chain.ainvoke({})
     safe_title = sanitize_filename(script_response.title)
     script_text, _ = videoscript_to_text(script_response, safe_title)
     return {
@@ -407,8 +477,8 @@ async def get_and_join_bgm(state: State) -> FinalOutput:
     print("Starting get_and_join_bgm...")
 
     latest_script_obj = state.scripts[-1]
-    reel_bgm_genre = latest_script_obj.background_music.music
-    print(reel_bgm_genre)
+    # reel_bgm_genre = latest_script_obj.background_music.music
+    # print(reel_bgm_genre)
     # print(type(reel_bgm_genre))
 
     latest_captioned_reel = state.captioned_output
@@ -420,18 +490,19 @@ async def get_and_join_bgm(state: State) -> FinalOutput:
     reel_duration = get_video_duration(captioned_reel_path)
     print(f"Video duration: {reel_duration:.2f} seconds")
 
-    bgm_volume = 0.3
+    bgm_volume = 0.25
     fade_duration = 1.0
 
     # general_bgm_genres = ['ambient piano', 'subtle piano', 'calm', 'ambient', 'chill', 'lofi']
     # random_bgm_genre = random.choice(general_bgm_genres)
-    print(f"Selected random BGM genre: {reel_bgm_genre}")
+    # print(f"Selected random BGM genre: {reel_bgm_genre}")
+    print(f"Selected random BGM genre: 'dark ambient'")
 
     print("Fetching tracks from Bensound...")
     tracks_info_str, tracks_data = await fetch_track(
         n_pages=1,
         save_path=state.media_result.output_dir,
-        input_query=reel_bgm_genre
+        input_query='dark ambient'
     )
     print(f"Number of tracks fetched: {len(tracks_data)}")
 
@@ -441,7 +512,7 @@ async def get_and_join_bgm(state: State) -> FinalOutput:
 
     print("Requesting model recommendation...")
     model_recommendation = await model.with_structured_output(SelectedTrack).ainvoke(
-        f"Video duration: {reel_duration:.2f}s. Genre: {reel_bgm_genre}. "
+        f"Video duration: {reel_duration:.2f}s. Genre: 'dark ambient'. "
         f"Select a track (duration >= video) with matching mood:\n{tracks_info_str}"
     )
     print(f"Model recommended track index: {model_recommendation.track_index}")
@@ -532,10 +603,13 @@ builder.add_node('generate_audio', generate_audio)  # New audio generation node
 builder.add_node('media_editor', media_editor)
 builder.add_node('add_captions', add_captions)
 builder.add_node('get_and_join_bgm', get_and_join_bgm)
+builder.add_node('topic_data_generator', topic_data_generator)
 
 
 # Define workflow structure
-builder.add_edge(START, "script_generator")
+builder.add_edge(START, "topic_data_generator")
+
+builder.add_edge('topic_data_generator', "script_generator")
 # builder.add_edge("script_generator", "request_feedback")
 builder.add_edge("script_generator", "generate_audio")
 

@@ -92,7 +92,7 @@ class VideoCaptioner:
             all_clips.extend(highlight_boxes + word_clips)
 
         final_video = CompositeVideoClip(all_clips).with_audio(video.audio)
-        final_video.write_videofile(output_path, fps=24, codec="libx264", audio_codec="aac")
+        final_video.write_videofile(output_path, fps=30, codec="libx264", audio_codec="aac")
 
     async def _create_caption_clips(self, textJSON: Dict, framesize: Tuple[int, int]) -> Tuple[List[TextClip], List[ImageClip]]:
         full_duration = textJSON['end'] - textJSON['start']

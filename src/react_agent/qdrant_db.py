@@ -418,7 +418,7 @@ class TopicVectorStore:
         if not result:
             return False, None
         doc, score = result[0]
-        print(f"\nSCORE: {score}")
+        print(f"\nSIMILARITY WITH PREVIOUS TITLES: {score}\n")
         return score >= threshold, doc.metadata.get("title")
 
 

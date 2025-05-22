@@ -7,6 +7,7 @@ from pathlib import Path
 from datetime import datetime, timezone
 from typing import Dict, Any, List
 import random
+from pprint import pprint
 
 from dotenv import load_dotenv
 from pydantic import BaseModel
@@ -39,9 +40,18 @@ from react_agent.utils import (
     extract_video_name,
     get_video_duration
 )
+
+
 from react_agent.handle_kokoro import generate_tts
 from react_agent.handle_captions import VideoCaptioner
 from react_agent.pexels_handler import pexels, search_and_validate_videos
+from react_agent.handle_bensound_free import (
+    BensoundScraper, 
+    fetch_track, 
+    download_track_with_selenium, 
+    add_bgm_to_narrated_video_async
+)
+
 from react_agent.video_editor import (
     BASE_VIDEOS_PATH,
     OUTPUT_DIR_BASE,
@@ -72,7 +82,7 @@ async def topic_data_generator(state: State) -> dict:
     )
 
     prior_titles = [entry.concept_title for entry in state.previous_topics] if state.previous_topics else []
-    print(f"\nPRIOR TITLES: {prior_titles}\n")
+    print(f"\n [INFO] PRIOR TITLES: {prior_titles} \n")
     retry_attempts = 3
 
     for attempt in range(retry_attempts):
@@ -108,6 +118,8 @@ async def topic_data_generator(state: State) -> dict:
         insight: PsychologyShort = await psych_gen_chain.ainvoke({
             "messages": trimmed_messages
         })
+
+        print(f"\n[INFO] Title: {insight.concept_title}  \n")
 
         # Check for duplication
         is_duplicate, match_title = await topic_store.is_duplicate(insight)
@@ -252,14 +264,14 @@ async def generate_audio(state: State) -> dict:
     audio_segments = []
     
     for section in latest_script.sections:
-        print('section', section.section, '\n')
+        print('\n [INFO] section', section.section, '\n')
         meta = generate_tts(
             text=section.text,
             video_name=script_title,
             section=section.section,
             voice="af_bella"
         )
-        if meta:  # Only append if generation succeeded
+        if meta:
             audio_segments.append(meta)
     
     return {
@@ -302,7 +314,7 @@ async def media_editor(state: State) -> EditMediaResult:
             warnings=[warning]
         )
 
-    print(f"\nProcessing Script folder: {safe_title}")
+    # print(f"\n [INFO] Processing Script folder: {safe_title}\n")
     available_audio_files = sorted([
         f for f in os.listdir(script_audio_path)
         if f.lower().endswith(('.wav', '.mp3', '.m4a', '.aac'))
@@ -420,7 +432,7 @@ async def media_editor(state: State) -> EditMediaResult:
 async def add_captions(state: State) -> CaptionOutput:
     """Add captions to video and return structured output"""
 
-    print(f"\n[INFO] Using captioner from state: {video_captioner}\n")
+    print(f"\n [INFO] Using captioner from state: {video_captioner} \n")
 
     # Get the latest script and create a sanitized title
     latest_script_obj = state.scripts[-1]
@@ -469,8 +481,6 @@ async def add_captions(state: State) -> CaptionOutput:
     return {'captioned_output': captioned_output}
 
 
-from react_agent.handle_bensound_free import BensoundScraper, fetch_track, download_track_with_selenium, add_bgm_to_narrated_video_async
-
 
 
 async def get_and_join_bgm(state: State) -> FinalOutput:
@@ -482,10 +492,10 @@ async def get_and_join_bgm(state: State) -> FinalOutput:
     # print(type(reel_bgm_genre))
 
     latest_captioned_reel = state.captioned_output
-    print(type(latest_captioned_reel))
-    print(latest_captioned_reel)
+    # print(type(latest_captioned_reel))
+    # print(latest_captioned_reel)
     captioned_reel_path = latest_captioned_reel.captioned_video_path
-    print(f"Captioned reel path: {captioned_reel_path}")
+    print(f"\nCaptioned reel path: {captioned_reel_path} ")
 
     reel_duration = get_video_duration(captioned_reel_path)
     print(f"Video duration: {reel_duration:.2f} seconds")
@@ -496,9 +506,9 @@ async def get_and_join_bgm(state: State) -> FinalOutput:
     # general_bgm_genres = ['ambient piano', 'subtle piano', 'calm', 'ambient', 'chill', 'lofi']
     # random_bgm_genre = random.choice(general_bgm_genres)
     # print(f"Selected random BGM genre: {reel_bgm_genre}")
-    print(f"Selected random BGM genre: 'dark ambient'")
+    print(f"\nSelected random BGM genre: 'dark ambient'\n")
 
-    print("Fetching tracks from Bensound...")
+    print("\nFetching tracks from Bensound...")
     tracks_info_str, tracks_data = await fetch_track(
         n_pages=1,
         save_path=state.media_result.output_dir,
@@ -524,9 +534,9 @@ async def get_and_join_bgm(state: State) -> FinalOutput:
 
     download_dir = os.path.abspath(state.media_result.output_dir)
     os.makedirs(download_dir, exist_ok=True)
-    print(f"Downloading track to: {download_dir}")
+    print(f"\nDownloading track to: {download_dir}\n")
     attribution_text = download_track_with_selenium(selected_track["url"], download_dir)
-    print("Track downloaded successfully")
+    print("Track downloaded successfully\n")
     selected_track_name = (selected_track['title']).lower().strip().replace(' ', '')
     print(selected_track_name)
     track_path = os.path.join(download_dir, f"{selected_track_name}.mp3")
@@ -536,7 +546,7 @@ async def get_and_join_bgm(state: State) -> FinalOutput:
         state.media_result.output_dir,
         f"FINAL_{base_name}"
     )
-    print(f"Final output video path: {final_output_path}")
+    print(f"\n [INFO] Final output video path: {final_output_path}\n")
 
     try:
         print("Starting ffmpeg processing to add BGM...")
@@ -554,7 +564,7 @@ async def get_and_join_bgm(state: State) -> FinalOutput:
             sc_level_sc=1,
             sc_makeup=1
         )
-        print("FFmpeg processing completed successfully")
+        # print("FFmpeg processing completed successfully")
     except ffmpeg.Error as e:
         error_msg = e.stderr.decode('utf8') if e.stderr else str(e)
         print(f"FFmpeg processing failed: {error_msg}")
@@ -585,7 +595,8 @@ async def get_and_join_bgm(state: State) -> FinalOutput:
     )
 
     state.final_reel = final_output
-    print("get_and_join_bgm completed successfully")
+
+    print("\nFINAL OUTPUT METADATA: \n", final_output.dict(), '\n')
     return {"final_reel": final_output}
 
 

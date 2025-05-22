@@ -230,7 +230,7 @@ async def concatenate_sections(section_files, final_output):
         out_node = ffmpeg.output(concat_input, final_output, **output_options)
 
         # Run blocking ffmpeg.run in a separate thread
-        await asyncio.to_thread(ffmpeg.run, out_node, overwrite_output=True, quiet=False)
+        await asyncio.to_thread(ffmpeg.run, out_node, overwrite_output=True, quiet=True)
         
         print(f"Final reel created: {final_output}")
         return final_output

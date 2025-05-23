@@ -37,8 +37,8 @@ XFADE_TRANSITIONS = ['fade']
 SECTION_SILENCE = {
     'HOOK': 0.5,
     'CONCEPT': 0.5,
-    'REAL-WORLD_EXAMPLE': 1.0,
-    'PSYCHOLOGICAL_INSIGHT': 1.0,
+    'REAL-WORLD_EXAMPLE': 0.5,
+    'PSYCHOLOGICAL_INSIGHT': 0.5,
     'ACTIONABLE_TIP': 0.5,
     'CTA': 0.5
 }
@@ -174,10 +174,11 @@ async def create_reel_for_audio(audio_file_path, associated_video_files, output_
             print(f"    CTA video content ({timeline:.2f}s) too short for effective fade-out. Skipping fade for {section_name}.")
 
     tts_input = ffmpeg.input(audio_file_path)
+    sped_up_audio = tts_input.audio.filter('atempo', 1.1)
     silence_input = ffmpeg.input(
         'anullsrc=channel_layout=stereo:sample_rate=44100', format='lavfi', t=silence_duration
     )
-    padded_audio = ffmpeg.filter([tts_input.audio, silence_input.audio], 'concat', n=2, v=0, a=1)
+    padded_audio = ffmpeg.filter([sped_up_audio, silence_input.audio], 'concat', n=2, v=0, a=1)
 
     await aiofiles.os.makedirs(os.path.dirname(output_file_path), exist_ok=True)
     try:

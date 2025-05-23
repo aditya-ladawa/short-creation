@@ -8,7 +8,6 @@ import time
 import re
 
 import ffmpeg
-import asyncio
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -92,10 +91,8 @@ class BensoundScraper:
                 href = a_tag["href"]
                 full_url = urljoin(self.base_url, href)
                 tasks.append(self.extract_track_details(session, full_url))
-                print(full_url)
 
         return await asyncio.gather(*tasks)
-
 
     async def scrape_pages(self, max_pages=1):
         async with aiohttp.ClientSession() as session:
@@ -107,7 +104,6 @@ class BensoundScraper:
 
     def get_data(self):
         return self.tracks
-
 
 def download_track_with_selenium(track_url, download_dir):
     song_name = track_url.rstrip('/').split('/')[-1].replace('-', '')
@@ -132,6 +128,8 @@ def download_track_with_selenium(track_url, download_dir):
     chrome_options.add_argument("--disable-dev-shm-usage")
     chrome_options.add_argument("--log-level=3")
     chrome_options.add_argument("--window-size=1920,1080")
+
+
 
     driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=chrome_options)
     driver.get(track_url)
@@ -205,13 +203,13 @@ def download_track_with_selenium(track_url, download_dir):
 
         # Save attribution to file as before
         with open(attribution_filename, "w", encoding='utf-8') as f:
-            f.write(attribution_text)
-            # f.write(f"Extracted License Code: {license_code}\n")
+            f.write(attribution_text + "\n\n")
+            f.write(f"Extracted License Code: {license_code}\n")
 
         print(f"Saved attribution and license to {attribution_filename}")
 
         # Return both separately
-        return attribution_text
+        return attribution_text, license_code
 
     except Exception as e:
         print(f"Error during selenium interaction: {e}")
@@ -221,14 +219,11 @@ def download_track_with_selenium(track_url, download_dir):
         driver.quit()
 
 
+
 # === Main Script ===
-async def fetch_track(input_query: str, save_path: str, n_pages: int=2):
-    search_input = str(input_query)
-    num_pages = int(n_pages)
-
-    scraper = ben_sound_scraper = BensoundScraper(input_query)
-    await scraper.scrape_pages(max_pages=num_pages)
-
+async def fetch_track(input_query: str, n_pages: int=2):
+    scraper = BensoundScraper(input_query)
+    await scraper.scrape_pages(max_pages=n_pages)
     data = scraper.get_data()
 
     info_string = ""
@@ -237,97 +232,33 @@ async def fetch_track(input_query: str, save_path: str, n_pages: int=2):
 
     return info_string, data
 
+async def main():
+    query = input("Enter search query: ").strip()
+    n_pages = int(input("Enter number of pages to scrape: ").strip())
 
-async def add_bgm_to_narrated_video_async(
-    video_path: str,
-    bgm_path: str,
-    output_path: str = None,
-    bgm_volume: float = 0.3,
-    narration_volume: float = 1.0,
-    fade_duration: float = 1.0,
-    # Sidechaincompress params
-    sc_threshold: str = '-30dB',
-    sc_ratio: float = 10,
-    sc_attack: int = 5,     # in milliseconds
-    sc_release: int = 100,  # in milliseconds
-    sc_level_in: float = 1,
-    sc_level_sc: float = 1,
-    sc_makeup: float = None # None means omit makeup param
-) -> str:
-    if output_path is None:
-        base, ext = os.path.splitext(video_path)
-        output_path = f"{base}_BGM{ext}"
+    # Fetch tracks info
+    info_str, tracks = await fetch_track(query, n_pages)
+    print("\nAvailable tracks:\n")
+    print(info_str)
 
-    def run_ffmpeg():
-        # Probe video duration
-        duration = float(ffmpeg.probe(video_path)['format']['duration'])
+    track_no = int(input(f"Enter track number to download (1-{len(tracks)}): ").strip())
+    if not (1 <= track_no <= len(tracks)):
+        print("Invalid track number")
+        return
 
-        # Inputs
-        video_in = ffmpeg.input(video_path)
-        bgm_in = ffmpeg.input(bgm_path)
+    track_to_download = tracks[track_no - 1]
+    download_dir = os.path.abspath("downloads")
+    os.makedirs(download_dir, exist_ok=True)
 
-        # Adjust BGM volume and apply fade out at the end
-        bgm_audio = (
-            bgm_in.audio
-            .filter('atrim', duration=duration)
-            .filter('afade', t='out', st=duration - fade_duration, d=fade_duration)
-            .filter('volume', bgm_volume)
-        )
+    print(f"Downloading track '{track_to_download['title']}' by {track_to_download['composer']}...")
+    attribution_text, license_code = download_track_with_selenium(track_to_download['url'], download_dir)
 
-        # Adjust narration volume and split for ducking
-        narration_audio = video_in.audio.filter('volume', narration_volume).filter_multi_output('asplit', 2)
-        narration_main = narration_audio[0]
-        narration_for_ducking = narration_audio[1]
+    print("\n✅ Attribution Text:\n")
+    print(attribution_text)
 
-        # Build sidechaincompress args dictionary
-        sc_args = dict(
-            threshold=sc_threshold,
-            ratio=sc_ratio,
-            attack=sc_attack,
-            release=sc_release,
-            level_in=sc_level_in,
-            level_sc=sc_level_sc,
-        )
-        if sc_makeup is not None:
-            sc_args['makeup'] = sc_makeup
-
-        # Apply sidechaincompress for auto-ducking
-        ducked_bgm = ffmpeg.filter(
-            [bgm_audio, narration_for_ducking],
-            'sidechaincompress',
-            **sc_args
-        )
-
-        # Mix narration with ducked BGM
-        mixed_audio = ffmpeg.filter(
-            [narration_main, ducked_bgm],
-            'amix',
-            dropout_transition=0,
-            duration='shortest'
-        )
-
-        # Output final video
-        (
-            ffmpeg
-            .output(video_in.video, mixed_audio, output_path, vcodec='copy', acodec='aac', audio_bitrate='192k')
-            .overwrite_output()
-            .run()
-        )
-        return output_path
-
-    return await asyncio.to_thread(run_ffmpeg)
+    print("\n🔐 Extracted License Code:")
+    print(license_code)
 
 
-
-
-# async def main():
-#     tracks_info_str, tracks_data = await fetch_track(
-#     n_pages=1,
-#     save_path='/home/aditya-ladawa/Aditya/z_projects/short_creation/downloads',
-#     input_query='ambient_piano'
-#     )
-
-#     print(tracks_data)
-
-# if __name__ == "__main__":
-#     asyncio.run(main())
+if __name__ == "__main__":
+    asyncio.run(main())

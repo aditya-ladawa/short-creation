@@ -5,7 +5,7 @@ import asyncio
 import requests
 from pathlib import Path
 from datetime import datetime, timezone
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Annotated, Optional
 import random
 from pprint import pprint
 
@@ -31,6 +31,7 @@ from react_agent.configuration import Configuration
 from react_agent.state import InputState, State
 from react_agent.structures import *
 from react_agent.qdrant_db import TopicVectorStore, topic_store
+from react_agent.handle_shorts_upload import youtube_upload_short
 from react_agent.utils import (
     load_chat_model,
     videoscript_to_text,
@@ -152,9 +153,9 @@ async def script_generator(state: State) -> Dict[str, Any]:
 
     human_message = f"""
         Concept title: {topic_selected.concept_title}\n
-        Explanation: {topic_selected.concept_title}\n
-        Psychological Effect: {topic_selected.concept_title}\n
-        Real World Application: {topic_selected.concept_title}\n
+        Explanation: {topic_selected.explanation}\n
+        Psychological Effect: {topic_selected.psychological_effect}\n
+        Real World Application: {topic_selected.real_world_application}\n
 
 
     """
@@ -487,7 +488,7 @@ async def get_and_join_bgm(state: State) -> FinalOutput:
     print("Starting get_and_join_bgm...")
 
     latest_script_obj = state.scripts[-1]
-    # reel_bgm_genre = latest_script_obj.background_music.music
+    reel_bgm_genre = latest_script_obj.background_music.music
     # print(reel_bgm_genre)
     # print(type(reel_bgm_genre))
 
@@ -500,19 +501,19 @@ async def get_and_join_bgm(state: State) -> FinalOutput:
     reel_duration = get_video_duration(captioned_reel_path)
     print(f"Video duration: {reel_duration:.2f} seconds")
 
-    bgm_volume = 0.25
+    bgm_volume = 0.35
     fade_duration = 1.0
 
     # general_bgm_genres = ['ambient piano', 'subtle piano', 'calm', 'ambient', 'chill', 'lofi']
     # random_bgm_genre = random.choice(general_bgm_genres)
-    # print(f"Selected random BGM genre: {reel_bgm_genre}")
-    print(f"\nSelected random BGM genre: 'dark ambient'\n")
+    print(f"Selected random BGM genre: {reel_bgm_genre}")
+    # print(f"\nSelected random BGM genre: 'dark ambient'\n")
 
     print("\nFetching tracks from Bensound...")
     tracks_info_str, tracks_data = await fetch_track(
         n_pages=1,
         save_path=state.media_result.output_dir,
-        input_query='dark ambient'
+        input_query=reel_bgm_genre
     )
     print(f"Number of tracks fetched: {len(tracks_data)}")
 
@@ -522,7 +523,7 @@ async def get_and_join_bgm(state: State) -> FinalOutput:
 
     print("Requesting model recommendation...")
     model_recommendation = await model.with_structured_output(SelectedTrack).ainvoke(
-        f"Video duration: {reel_duration:.2f}s. Genre: 'dark ambient'. "
+        f"Video duration: {reel_duration:.2f}s. Genre: '{reel_bgm_genre}'. "
         f"Select a track (duration >= video) with matching mood:\n{tracks_info_str}"
     )
     print(f"Model recommended track index: {model_recommendation.track_index}")
@@ -536,8 +537,8 @@ async def get_and_join_bgm(state: State) -> FinalOutput:
     os.makedirs(download_dir, exist_ok=True)
     print(f"\nDownloading track to: {download_dir}\n")
     attribution_text = download_track_with_selenium(selected_track["url"], download_dir)
-    print("Track downloaded successfully\n")
-    selected_track_name = (selected_track['title']).lower().strip().replace(' ', '')
+    print(f"Track downloaded successfully. \n")
+    selected_track_name = (selected_track['title']).strip().lower().replace(' ', '')
     print(selected_track_name)
     track_path = os.path.join(download_dir, f"{selected_track_name}.mp3")
 
@@ -594,10 +595,63 @@ async def get_and_join_bgm(state: State) -> FinalOutput:
         audio_volume=bgm_volume
     )
 
-    state.final_reel = final_output
+    # state.final_reel = final_output
+
+    # Save final output JSON
+    # json_path = os.path.join(state.media_result.output_dir, "final_output.json")
+    # with open(json_path, "w", encoding="utf-8") as f:
+    #     json.dump(final_output.dict(), f, indent=4)
+    # print(f"Final output JSON saved to: {json_path}")
 
     print("\nFINAL OUTPUT METADATA: \n", final_output.dict(), '\n')
     return {"final_reel": final_output}
+
+
+async def upload_short(state: State) -> State:
+    short: PsychologyShort = state.psych_insight
+    final: FinalOutput = state.final_reel
+
+    print(f"\n[INFO] Loaded short and final data...")
+
+    # Build full description
+    track = final.track_info
+    full_description = (
+        f"{short.youtube_description}\n\n"
+        f"{short.value_pitch}\n"
+        f"{short.cta_line}\n\n"
+        f"Tags: {' '.join(tag for tag in short.hashtags)}\n\n"
+        f"Attribution text:\n"
+        f"{track.attribution_text}\n\n"
+        f"URL:\n {track.track_url}"
+    )
+
+    print(f"\n[INFO] Running upload...")
+
+    # Upload in thread pool
+    loop = asyncio.get_event_loop()
+    short_link = await loop.run_in_executor(
+        None,
+        youtube_upload_short,
+        final.final_reel_path,
+        short.youtube_title,
+        full_description,
+        ",".join(short.hashtags),
+        "27",  # categoryId for Education
+        "public"
+    )
+
+    if short_link:
+        final.short_link = short_link
+        print(f"\n✅ Uploaded. Link: {short_link}")
+    else:
+        print("\n⚠️ Upload failed or link not returned.")
+
+    json_path = os.path.join(state.media_result.output_dir, "final_output.json")
+    with open(json_path, "w", encoding="utf-8") as f:
+        json.dump(final.dict(), f, indent=4)
+    print(f"Final output JSON saved to: {json_path}")
+
+    return {"final_reel": final}
 
 
 
@@ -615,6 +669,7 @@ builder.add_node('media_editor', media_editor)
 builder.add_node('add_captions', add_captions)
 builder.add_node('get_and_join_bgm', get_and_join_bgm)
 builder.add_node('topic_data_generator', topic_data_generator)
+builder.add_node("upload_short", upload_short)
 
 
 # Define workflow structure
@@ -644,7 +699,9 @@ builder.add_edge("get_videos", 'media_editor')
 builder.add_edge('media_editor', 'add_captions')
 
 builder.add_edge('add_captions', 'get_and_join_bgm')
-builder.add_edge('get_and_join_bgm', '__end__')
+builder.add_edge('get_and_join_bgm', 'upload_short')
+builder.add_edge('upload_short', '__end__')
+
 
 
 

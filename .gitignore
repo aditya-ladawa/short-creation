@@ -182,3 +182,20 @@ extras/
 
 
 src/react_agent/test.ipynb
+
+
+google_client_secret.json
+token.json
+
+src/react_agent/youtube_uploader.py
+src/react_agent/generate_auth_token.py
+
+
+channel_kit/
+
+
+chromedriver
+LICENSE.chromedriver
+
+youtube-oauth2.json
+google_client_secret.json

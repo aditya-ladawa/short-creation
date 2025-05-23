@@ -252,6 +252,7 @@ class FinalOutput(BaseModel):
     video_duration: float
     audio_volume: float
     created_at: str = Field(default_factory=lambda: datetime.now().isoformat())
+    short_link: Optional[str] = None
 
 
 class PsychologyShort(BaseModel):

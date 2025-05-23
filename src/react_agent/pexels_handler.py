@@ -15,6 +15,8 @@ load_dotenv()
 
 pexels = PexelsAPI(os.environ.get('PEXELS_API_KEY'))
 
+class NoHDVideoError(Exception):
+    pass
 
 async def search_and_validate_videos(section, model, section_dir: Path) -> Tuple[List[VideoMetadata], List[dict]]:
     search_query = section.visual.scene
@@ -44,9 +46,7 @@ async def search_and_validate_videos(section, model, section_dir: Path) -> Tuple
                 raise ValueError("No videos returned from Pexels")
 
             print(f"🎥 Retrieved {len(videos_data)} videos from Pexels for query '{search_query}'")
-            # for vid in videos_data:
-            #     print(f" - Name: {extract_video_name(vid['video_url'])}")
-            
+
             video_dict = {
                 str(video['id']): extract_video_name(video['video_url'])
                 for video in videos_data
@@ -54,7 +54,6 @@ async def search_and_validate_videos(section, model, section_dir: Path) -> Tuple
 
             video_entries = "\n".join([f"{k}: {v}" for k, v in video_dict.items()])
 
-            # Call LLM to select best matches
             system_prompt = f"""You are an expert video assistant.
 
                             Given the script section:
@@ -114,7 +113,6 @@ async def download_video_from_metadata(video_data, match, section_dir: Path, sec
     video_name = match["video_name"]
     max_retries = 3
     retry = 0
-
     target_aspect = 9 / 16
 
     try:
@@ -122,51 +120,55 @@ async def download_video_from_metadata(video_data, match, section_dir: Path, sec
         if not video_files:
             raise ValueError("No video files found")
 
-        # Rank videos by closeness to target aspect ratio and quality preference
-        quality_rank = {"hd": 0, "sd": 1, "sd-low": 2}
-        sorted_videos = sorted(
-            video_files,
-            key=lambda v: (
-                abs((v["width"] / v["height"]) - target_aspect),
-                quality_rank.get(v.get("quality"), 99)
-            )
-        )
+        def rank_by_aspect(files):
+            return sorted(files, key=lambda v: abs((v["width"] / v["height"]) - target_aspect))
 
-        for candidate in sorted_videos:
-            while retry < max_retries:
-                try:
-                    filename = sanitize_filename(f"{section_index}_{video_id}") + '.mp4'
-                    video_path = section_dir / filename
-                    temp_path = video_path.with_suffix('.tmp')
+        # Try HD first, then SD
+        for quality in ["hd", "sd"]:
+            candidates = [v for v in video_files if v.get("quality") == quality]
+            if not candidates:
+                print(f"⚠️ No '{quality}' videos found, trying fallback...")
+                continue
 
-                    with requests.get(candidate["link"], stream=True) as response:
-                        response.raise_for_status()
-                        with open(temp_path, "wb") as f:
-                            for chunk in response.iter_content(chunk_size=8192):
-                                f.write(chunk)
-                    temp_path.rename(video_path)
+            sorted_videos = rank_by_aspect(candidates)
 
-                    return VideoMetadata(
-                        script_section=section_index,
-                        pexels_id=video_data["id"],
-                        file_path=str(video_path),
-                        search_query=query,
-                        author=video_data.get("author"),
-                        author_url=str(video_data.get("author_url")),
-                        video_url=str(video_data.get("video_url")),
-                        dimensions=f"{candidate['width']}x{candidate['height']}",
-                        duration=video_data.get("duration"),
-                        quality=candidate.get("quality")
-                    )
-                except Exception as e:
-                    retry += 1
-                    print(f"⚠️ Failed to download candidate video {video_id} (attempt {retry}): {str(e)}")
-                    await asyncio.sleep(2 ** retry)
+            for candidate in sorted_videos:
+                while retry < max_retries:
+                    try:
+                        filename = sanitize_filename(f"{section_index}_{video_id}_{quality}") + '.mp4'
+                        video_path = section_dir / filename
+                        temp_path = video_path.with_suffix('.tmp')
 
-            print(f"❌ Candidate video format failed after {max_retries} retries, trying next best...")
-            retry = 0  # reset retry count for next candidate
+                        with requests.get(candidate["link"], stream=True) as response:
+                            response.raise_for_status()
+                            with open(temp_path, "wb") as f:
+                                for chunk in response.iter_content(chunk_size=8192):
+                                    f.write(chunk)
+                        temp_path.rename(video_path)
+
+                        return VideoMetadata(
+                            script_section=section_index,
+                            pexels_id=video_data["id"],
+                            file_path=str(video_path),
+                            search_query=query,
+                            author=video_data.get("author"),
+                            author_url=str(video_data.get("author_url")),
+                            video_url=str(video_data.get("video_url")),
+                            dimensions=f"{candidate['width']}x{candidate['height']}",
+                            duration=video_data.get("duration"),
+                            quality=quality
+                        )
+                    except Exception as e:
+                        retry += 1
+                        print(f"⚠️ Failed to download {quality.upper()} candidate {video_id} (attempt {retry}): {str(e)}")
+                        await asyncio.sleep(2 ** retry)
+
+                print(f"❌ All {quality.upper()} video retries failed, trying next candidate...")
+                retry = 0  # Reset retry count for next candidate
+
+        raise ValueError("No downloadable formats found for HD or SD")
 
     except Exception as final_error:
-        print(f"🚨 No downloadable formats found for video {video_id}: {str(final_error)}")
+        print(f"🚨 Could not download video {video_id} in any quality: {str(final_error)}")
 
     return None

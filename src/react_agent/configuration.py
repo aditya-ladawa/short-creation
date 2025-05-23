@@ -30,16 +30,6 @@ class BaseConfiguration:
         },
     )
 
-    retriever_provider: Annotated[
-        Literal["weaviate-local"],
-        {"__template_metadata__": {"kind": "retriever"}},
-    ] = field(
-        default="weaviate-local",
-        metadata={
-            "description": "The vector store provider to use for retrieval. Currently set to 'weaviate-local'."
-        },
-    )
-
     retriever_search_kwargs: dict[str, Any] = field(
         default_factory=lambda: {"k": 10, "alpha": 0.5}, # Increased k for reranking
         metadata={
@@ -85,8 +75,11 @@ T = TypeVar("T", bound=BaseConfiguration)
 @dataclass
 class Configuration(BaseConfiguration):
     """The full configuration for the agent."""
-
-    # ... (rest of the agent-specific config remains the same) ...
+    
+    thread_id: str = field(
+        default="short-creator-test",
+        metadata={"description": "Thread identifier for the current workflow/process."},
+    )
 
     script_gen_prompt: str = field(
         default=prompts.SCRIPT_GEN_PROMPT,

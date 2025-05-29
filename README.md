@@ -21,6 +21,22 @@ This project uses Youtube v3 API, for which we need to create a GCP project.
 
 ---
 
+## Examples
+
+Here are some examples of short videos generated using this project:
+
+* **The Empath Trap**
+  [https://youtube.com/shorts/XTygk1vQ-FQ?si=HiOvHXto6hF8cdpg](https://youtube.com/shorts/XTygk1vQ-FQ?si=HiOvHXto6hF8cdpg)
+
+* **The Void Gambit**
+  [https://youtube.com/shorts/*q7XlsYr-uw?si=TNJ3wBEXxirtnoR*](https://youtube.com/shorts/_q7XlsYr-uw?si=TNJ3wBEXxirtnoR_)
+
+* **YouTube Channel (More Shorts)**
+  [https://www.youtube.com/@the\_inner\_lab/shorts](https://www.youtube.com/@the_inner_lab/shorts)
+
+
+---
+
 ## Project Architecture
 
 The project's functionality is distributed across several Python modules, each serving a distinct purpose:
@@ -96,7 +112,6 @@ YOUTUBE_COOKIES_PATH = '/path/to/your/channel_kit/youtube_cookies.json'
 YOUTUBE_AUTH_JSON = '/path/to/your/youtube-oauth2.json'
 ```
 
----
 
 ## Future Development
 
@@ -108,3 +123,5 @@ YOUTUBE_AUTH_JSON = '/path/to/your/youtube-oauth2.json'
 * **Scalability Optimizations**: Further optimization for high-volume, concurrent video processing.
 
 ---
+
+Let me know if you’d like this turned into an actual `README.md` file or if you want the links embedded with Markdown formatting for GitHub preview.

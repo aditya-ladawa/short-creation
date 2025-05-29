@@ -21,18 +21,15 @@ This project uses Youtube v3 API, for which we need to create a GCP project.
 
 ---
 
-## Examples
+## 🎬 Example Shorts
 
-Here are some examples of short videos generated using this project:
+### 🧠 The Empath Trap  
+[![Watch the video](https://img.youtube.com/vi/XTygk1vQ-FQ/0.jpg)](https://youtube.com/shorts/XTygk1vQ-FQ?si=HiOvHXto6hF8cdpg)
 
-* **The Empath Trap**
-  [https://youtube.com/shorts/XTygk1vQ-FQ?si=HiOvHXto6hF8cdpg](https://youtube.com/shorts/XTygk1vQ-FQ?si=HiOvHXto6hF8cdpg)
+### 🕳️ The Void Gambit  
+[![Watch the video](https://img.youtube.com/vi/_q7XlsYr-uw/0.jpg)](https://youtube.com/shorts/_q7XlsYr-uw?si=TNJ3wBEXxirtnoR_)
 
-* **The Void Gambit**
-  [https://youtube.com/shorts/*q7XlsYr-uw?si=TNJ3wBEXxirtnoR*](https://youtube.com/shorts/_q7XlsYr-uw?si=TNJ3wBEXxirtnoR_)
-
-* **YouTube Channel (More Shorts)**
-  [https://www.youtube.com/@the\_inner\_lab/shorts](https://www.youtube.com/@the_inner_lab/shorts)
+➡️ **[See all videos on our YouTube Shorts channel](https://www.youtube.com/@the_inner_lab/shorts)**
 
 
 ---

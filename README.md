@@ -119,6 +119,3 @@ YOUTUBE_AUTH_JSON = '/path/to/your/youtube-oauth2.json'
 * **User Interface Development**: Introduction of a user-friendly interface (e.g., web-based or command-line) for enhanced interaction and workflow monitoring.
 * **Scalability Optimizations**: Further optimization for high-volume, concurrent video processing.
 
----
-
-Let me know if you’d like this turned into an actual `README.md` file or if you want the links embedded with Markdown formatting for GitHub preview.

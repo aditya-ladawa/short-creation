@@ -511,7 +511,7 @@ async def get_and_join_bgm(state: State) -> FinalOutput:
 
     print("\nFetching tracks from Bensound...")
     tracks_info_str, tracks_data = await fetch_track(
-        n_pages=1,
+        n_pages=2,
         save_path=state.media_result.output_dir,
         input_query=reel_bgm_genre
     )

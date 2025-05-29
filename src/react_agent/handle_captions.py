@@ -35,7 +35,7 @@ class VideoCaptioner:
             "font": CAPTIONS_FONT_PATH,
             "highlight_fontsize": 65,
             "highlight_color": 'white',
-            "highlight_bg_color": (0, 30, 220),
+            "highlight_bg_color": (255, 221, 0),
             "highlight_padding": 10,
             "highlight_radius": 15,
             "text_position": ('center', 'bottom'),
